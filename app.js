@@ -1,4 +1,4 @@
-// Application Data - Updated structure based on requirements
+// Application Data - Fixed for Version 22 without subsections
 const appData = {
   sectionTemplates: [
     {
@@ -30,18 +30,6 @@ const appData = {
       "type": "section", 
       "allowsContent": true,
       "preloadedContent": []
-    },
-    {
-      "id": "module", 
-      "name": "Module", 
-      "icon": "📚", 
-      "type": "section", 
-      "allowsContent": true,
-      "preloadedContent": [
-        {"name": "Topic 1", "type": "subsection", "icon": "📋"},
-        {"name": "Topic 2", "type": "subsection", "icon": "📋"},
-        {"name": "Topic 3", "type": "subsection", "icon": "📋"}
-      ]
     },
     {
       "id": "what-is-on-this-week", 
@@ -77,28 +65,6 @@ const appData = {
     {"id": "in-class", "name": "In-Class", "icon": "🏫", "type": "design-element"},
     {"id": "post-class", "name": "Post-Class", "icon": "📚", "type": "design-element"},
     {"id": "practical", "name": "Practical", "icon": "🔧", "type": "design-element"}
-  ],
-  hierarchyRules: {
-    "section": ["subsection", "resource", "activity", "design-element"],
-    "section-special": [],
-    "subsection": ["resource", "activity", "design-element"],
-    "resource": [],
-    "activity": [],
-    "design-element": []
-  },
-  propertyFields: {
-    "section": ["name", "summaryForStudents", "notesForDeveloper"],
-    "subsection": ["name", "summaryForStudents", "notesForDeveloper"],
-    "resource": ["name", "description", "approxLearningTime"],
-    "activity": ["name", "description", "approxLearningTime"],
-    "design-element": ["name"]
-  },
-  sidebarCategories: [
-    {"id": "custom-elements", "name": "Custom Elements", "expanded": true},
-    {"id": "section-templates", "name": "Section Templates", "expanded": true},
-    {"id": "resources", "name": "Resources", "expanded": true},
-    {"id": "activities", "name": "Activities", "expanded": true},
-    {"id": "design-elements", "name": "Design Elements", "expanded": true}
   ]
 };
 
@@ -115,14 +81,19 @@ let dropZoneIndicator = null;
 let dragOverElement = null;
 let currentMoveElement = null;
 let currentDeleteElement = null;
-let lastDropTarget = null;
-let dropPosition = null; // 'above', 'below', or 'inside'
+let insertionIndex = -1;
+let currentDropContainer = null;
 
 // DOM Elements
+const sectionTemplatesListEl = document.getElementById('section-templates-list');
+const resourcesListEl = document.getElementById('resources-list');
+const activitiesListEl = document.getElementById('activities-list');
+const designElementsListEl = document.getElementById('design-elements-list');
 const canvasEl = document.getElementById('canvas');
 const canvasPlaceholder = document.getElementById('canvas-placeholder');
 const dragPreview = document.getElementById('drag-preview');
 const contextMenu = document.getElementById('context-menu');
+const editModal = document.getElementById('edit-modal');
 const moveModal = document.getElementById('move-modal');
 const deleteModal = document.getElementById('delete-modal');
 const starterGuideModal = document.getElementById('starter-guide-modal');
@@ -132,121 +103,37 @@ const propertiesContent = document.getElementById('properties-content');
 // Initialize Application
 document.addEventListener('DOMContentLoaded', function() {
   initializeComponentLibrary();
-  initializeSidebarToggle();
   initializeEventListeners();
   loadCanvasData();
   dropZoneIndicator = document.getElementById('drop-zone-indicator');
   
-  // Auto-open Starter Guide on first load
-  showStarterGuide();
+  // Show Starter Guide automatically on page load
+  setTimeout(() => {
+    showStarterGuide();
+  }, 500);
 });
-
-// Starter Guide Functions
-function showStarterGuide() {
-  starterGuideModal.classList.remove('hidden');
-}
-
-function hideStarterGuide() {
-  starterGuideModal.classList.add('hidden');
-}
-
-// Initialize Sidebar Toggle Functionality
-function initializeSidebarToggle() {
-  const sidebarHeaders = document.querySelectorAll('.sidebar-header');
-  
-  sidebarHeaders.forEach(header => {
-    header.addEventListener('click', function() {
-      const categoryId = this.dataset.category;
-      const toggle = this.querySelector('.sidebar-toggle');
-      const content = this.nextElementSibling;
-      
-      // Toggle collapsed state
-      const isCollapsed = content.classList.contains('collapsed');
-      
-      if (isCollapsed) {
-        content.classList.remove('collapsed');
-        toggle.classList.remove('collapsed');
-        toggle.textContent = '▼';
-      } else {
-        content.classList.add('collapsed');
-        toggle.classList.add('collapsed');
-        toggle.textContent = '▶';
-      }
-      
-      // Save state
-      const category = appData.sidebarCategories.find(cat => cat.id === categoryId);
-      if (category) {
-        category.expanded = isCollapsed;
-        saveSidebarState();
-      }
-    });
-  });
-  
-  // Load saved sidebar state
-  loadSidebarState();
-}
-
-function saveSidebarState() {
-  localStorage.setItem('lms_wireframe_sidebar', JSON.stringify(appData.sidebarCategories));
-}
-
-function loadSidebarState() {
-  const saved = localStorage.getItem('lms_wireframe_sidebar');
-  if (saved) {
-    try {
-      const savedCategories = JSON.parse(saved);
-      savedCategories.forEach(savedCat => {
-        const category = appData.sidebarCategories.find(cat => cat.id === savedCat.id);
-        if (category) {
-          category.expanded = savedCat.expanded;
-        }
-      });
-    } catch (e) {
-      console.error('Error loading sidebar state:', e);
-    }
-  }
-  
-  // Apply saved states
-  appData.sidebarCategories.forEach(category => {
-    const header = document.querySelector(`[data-category="${category.id}"]`);
-    if (header) {
-      const toggle = header.querySelector('.sidebar-toggle');
-      const content = header.nextElementSibling;
-      
-      if (!category.expanded) {
-        content.classList.add('collapsed');
-        toggle.classList.add('collapsed');
-        toggle.textContent = '▶';
-      }
-    }
-  });
-}
 
 // Initialize Component Library
 function initializeComponentLibrary() {
   // Populate section templates
-  const sectionTemplatesListEl = document.getElementById('section-templates-list');
   appData.sectionTemplates.forEach(section => {
     const sectionEl = createComponentItem(section);
     sectionTemplatesListEl.appendChild(sectionEl);
   });
 
   // Populate resources
-  const resourcesListEl = document.getElementById('resources-list');
   appData.resources.forEach(resource => {
     const resourceEl = createComponentItem(resource);
     resourcesListEl.appendChild(resourceEl);
   });
 
   // Populate activities
-  const activitiesListEl = document.getElementById('activities-list');
   appData.activities.forEach(activity => {
     const activityEl = createComponentItem(activity);
     activitiesListEl.appendChild(activityEl);
   });
 
   // Populate design elements
-  const designElementsListEl = document.getElementById('design-elements-list');
   appData.designElements.forEach(element => {
     const elementEl = createComponentItem(element);
     designElementsListEl.appendChild(elementEl);
@@ -272,7 +159,7 @@ function createComponentItem(item) {
   return div;
 }
 
-// Initialize Event Listeners
+// FIXED: Initialize Event Listeners with proper event delegation
 function initializeEventListeners() {
   // Drag and Drop Events
   document.addEventListener('dragstart', handleDragStart);
@@ -281,40 +168,85 @@ function initializeEventListeners() {
   document.addEventListener('dragend', handleDragEnd);
 
   // Toolbar Events
-  document.getElementById('help-btn').addEventListener('click', showStarterGuide);
   document.getElementById('save-btn').addEventListener('click', saveCanvas);
   document.getElementById('clear-btn').addEventListener('click', clearCanvas);
   document.getElementById('export-btn').addEventListener('click', exportCanvasToPDF);
+  document.getElementById('starter-guide-btn').addEventListener('click', showStarterGuide);
 
   // Custom Element Creation
   document.getElementById('add-section-btn').addEventListener('click', addCustomSection);
-  document.getElementById('add-subsection-btn').addEventListener('click', addCustomSubsection);
   document.getElementById('add-resource-btn').addEventListener('click', addCustomResource);
   document.getElementById('add-activity-btn').addEventListener('click', addCustomActivity);
 
   // Context Menu Events
   document.addEventListener('contextmenu', handleContextMenu);
   document.addEventListener('click', hideContextMenu);
-  document.getElementById('move-item').addEventListener('click', openMoveMenuFromContext);
-  document.getElementById('delete-item').addEventListener('click', openDeleteConfirmationFromContext);
+  document.getElementById('edit-item').addEventListener('click', editSelectedItem);
+  document.getElementById('delete-item').addEventListener('click', deleteSelectedItem);
 
-  // Starter Guide Events
-  document.getElementById('starter-guide-close').addEventListener('click', hideStarterGuide);
-  document.getElementById('starter-guide-ok').addEventListener('click', hideStarterGuide);
+  // Modal Events
+  document.getElementById('modal-close').addEventListener('click', closeModal);
+  document.getElementById('cancel-edit').addEventListener('click', closeModal);
+  document.getElementById('save-edit').addEventListener('click', saveItemEdit);
 
   // Move Modal Events
   document.getElementById('move-modal-close').addEventListener('click', closeMoveModal);
   document.getElementById('cancel-move').addEventListener('click', closeMoveModal);
 
-  // Delete Modal Events
+  // FIXED: Delete Modal Events
   document.getElementById('delete-modal-close').addEventListener('click', closeDeleteModal);
   document.getElementById('cancel-delete').addEventListener('click', closeDeleteModal);
   document.getElementById('confirm-delete').addEventListener('click', confirmDelete);
 
+  // Starter Guide Modal Events
+  document.getElementById('starter-guide-close').addEventListener('click', hideStarterGuide);
+  document.getElementById('close-starter-guide').addEventListener('click', hideStarterGuide);
+
+  // FIXED: Event delegation for dynamically created elements
+  document.addEventListener('click', function(e) {
+    // Handle edit buttons
+    if (e.target.closest('.control-btn') && e.target.textContent === '✏️') {
+      e.preventDefault();
+      e.stopPropagation();
+      const element = e.target.closest('.canvas-section, .content-item');
+      if (element) {
+        selectElement(element);
+      }
+    }
+    
+    // FIXED: Handle move buttons
+    if (e.target.closest('.control-btn') && e.target.textContent === '↕️') {
+      e.preventDefault();
+      e.stopPropagation();
+      const element = e.target.closest('.canvas-section, .content-item');
+      if (element) {
+        showMoveMenu(element);
+      }
+    }
+    
+    // FIXED: Handle delete buttons
+    if (e.target.closest('.control-btn') && e.target.textContent === '🗑️') {
+      e.preventDefault();
+      e.stopPropagation();
+      const element = e.target.closest('.canvas-section, .content-item');
+      if (element) {
+        showDeleteConfirmation(element);
+      }
+    }
+    
+    // Handle element selection
+    const target = e.target.closest('.canvas-section, .content-item');
+    if (target && !e.target.closest('.control-btn')) {
+      selectElement(target);
+    } else if (!e.target.closest('.properties-panel, .context-menu, .modal')) {
+      clearSelection();
+    }
+  });
+
   // Click outside modal to close
-  starterGuideModal.addEventListener('click', function(e) {
-    if (e.target === starterGuideModal) {
-      hideStarterGuide();
+  editModal.addEventListener('click', function(e) {
+    if (e.target === editModal) {
+      closeModal();
     }
   });
 
@@ -330,922 +262,27 @@ function initializeEventListeners() {
     }
   });
 
-  // Canvas click events for selection
-  document.addEventListener('click', function(e) {
-    const target = e.target.closest('.canvas-section, .canvas-subsection, .content-item');
-    if (target) {
-      selectElement(target);
-    } else if (!e.target.closest('.properties-panel, .context-menu, .modal')) {
-      clearSelection();
-    }
-  });
-
-  // Event delegation for dynamically created move buttons
-  document.addEventListener('click', function(e) {
-    if (e.target.classList.contains('control-btn') && e.target.textContent.includes('↕️')) {
-      e.preventDefault();
-      e.stopPropagation();
-      const element = e.target.closest('.canvas-section, .canvas-subsection, .content-item');
-      if (element) {
-        showMoveMenu(element);
-      }
-    }
-  });
-
-  // Event delegation for dynamically created delete buttons
-  document.addEventListener('click', function(e) {
-    if (e.target.classList.contains('control-btn') && e.target.textContent.includes('🗑️')) {
-      e.preventDefault();
-      e.stopPropagation();
-      const element = e.target.closest('.canvas-section, .canvas-subsection, .content-item');
-      if (element) {
-        showDeleteConfirmation(element);
-      }
+  starterGuideModal.addEventListener('click', function(e) {
+    if (e.target === starterGuideModal) {
+      hideStarterGuide();
     }
   });
 }
 
-// Enhanced Drag and Drop Handlers - Fixed for bidirectional movement
-function handleDragStart(e) {
-  if (!e.target.classList.contains('component-item') && 
-      !e.target.classList.contains('canvas-section') && 
-      !e.target.classList.contains('canvas-subsection') &&
-      !e.target.classList.contains('content-item')) {
-    return;
-  }
-
-  draggedElement = e.target;
-  e.target.classList.add('dragging');
-
-  // Create drag preview
-  const name = e.target.dataset.name || 
-                e.target.querySelector('.section-name, .subsection-name, .content-name')?.textContent || 
-                'Unknown Item';
-  
-  dragPreview.textContent = name;
-  dragPreview.classList.remove('hidden');
-  dragPreview.style.left = e.clientX + 10 + 'px';
-  dragPreview.style.top = e.clientY + 10 + 'px';
-
-  // Set drag data
-  e.dataTransfer.effectAllowed = 'move';
-  e.dataTransfer.setData('text/plain', '');
+// Starter Guide Functions
+function showStarterGuide() {
+  starterGuideModal.classList.remove('hidden');
 }
 
-function handleDragOver(e) {
-  e.preventDefault();
-
-  // Update drag preview position
-  if (!dragPreview.classList.contains('hidden')) {
-    dragPreview.style.left = e.clientX + 10 + 'px';
-    dragPreview.style.top = e.clientY + 10 + 'px';
-  }
-
-  if (!draggedElement) return;
-
-  const draggedType = getDraggedElementType();
-  const dropInfo = findValidDropTarget(e.target, draggedType, e.clientY);
-  
-  // Clear all drag-over states and indicators
-  clearAllDropIndicators();
-  
-  if (dropInfo && isValidDrop(draggedType, dropInfo.target, dropInfo.position)) {
-    // Show appropriate visual feedback based on drop position
-    showDropFeedback(dropInfo.target, dropInfo.position);
-    e.dataTransfer.dropEffect = 'move';
-    showDropZoneIndicator(e.clientX, e.clientY, true);
-    lastDropTarget = dropInfo.target;
-    dropPosition = dropInfo.position;
-  } else {
-    e.dataTransfer.dropEffect = 'none';
-    showDropZoneIndicator(e.clientX, e.clientY, false);
-    lastDropTarget = null;
-    dropPosition = null;
-  }
+function hideStarterGuide() {
+  starterGuideModal.classList.add('hidden');
 }
 
-function handleDrop(e) {
-  e.preventDefault();
-  
-  if (!draggedElement || !lastDropTarget) {
-    hideDropZoneIndicator();
-    clearAllDropIndicators();
-    return;
-  }
-
-  const draggedType = getDraggedElementType();
-  
-  // Hide placeholder if it exists
-  if (canvasPlaceholder) {
-    canvasPlaceholder.style.display = 'none';
-  }
-
-  // Handle different drop scenarios with enhanced positioning
-  if (draggedElement.classList.contains('component-item')) {
-    handleComponentDrop(draggedElement, lastDropTarget, dropPosition);
-  } else {
-    handleExistingElementMove(draggedElement, lastDropTarget, dropPosition);
-  }
-
-  hideDropZoneIndicator();
-  clearAllDropIndicators();
-  lastDropTarget = null;
-  dropPosition = null;
-}
-
-function handleDragEnd(e) {
-  if (e.target.classList.contains('dragging')) {
-    e.target.classList.remove('dragging');
-  }
-  
-  draggedElement = null;
-  lastDropTarget = null;
-  dropPosition = null;
-  dragPreview.classList.add('hidden');
-  hideDropZoneIndicator();
-  clearAllDropIndicators();
-}
-
-// Enhanced Helper Functions for Bidirectional Drag and Drop
-function getDraggedElementType() {
-  if (!draggedElement) return null;
-  
-  if (draggedElement.classList.contains('component-item')) {
-    return draggedElement.dataset.type;
-  } else if (draggedElement.classList.contains('canvas-section')) {
-    return 'section';
-  } else if (draggedElement.classList.contains('canvas-subsection')) {
-    return 'subsection';
-  } else if (draggedElement.classList.contains('content-item')) {
-    return draggedElement.dataset.type;
-  }
-  
-  return null;
-}
-
-function findValidDropTarget(target, draggedType, clientY) {
-  if (!draggedType) return null;
-
-  // Find the most specific valid container
-  let dropTarget = null;
-  let position = 'inside';
-
-  // For sections, drop on canvas or between other sections
-  if (draggedType === 'section') {
-    const canvasElement = target.closest('.canvas');
-    if (canvasElement) {
-      const sections = Array.from(canvasElement.querySelectorAll('.canvas-section'));
-      const targetSection = target.closest('.canvas-section');
-      
-      if (targetSection && targetSection !== draggedElement) {
-        const rect = targetSection.getBoundingClientRect();
-        const sectionMiddle = rect.top + rect.height / 2;
-        
-        position = clientY < sectionMiddle ? 'above' : 'below';
-        dropTarget = targetSection;
-      } else if (sections.length === 0 || !targetSection) {
-        dropTarget = canvasElement;
-        position = 'inside';
-      }
-    }
-  } else {
-    // For content items, find section or subsection content areas
-    const sectionContent = target.closest('.section-content');
-    const subsectionContent = target.closest('.subsection-content');
-    
-    if (subsectionContent) {
-      dropTarget = subsectionContent;
-      
-      // Check if dropping between items
-      const targetItem = target.closest('.content-item, .canvas-subsection');
-      if (targetItem && targetItem !== draggedElement) {
-        const rect = targetItem.getBoundingClientRect();
-        const itemMiddle = rect.top + rect.height / 2;
-        position = clientY < itemMiddle ? 'above' : 'below';
-        dropTarget = targetItem.parentElement; // Use parent container
-      } else {
-        position = 'inside';
-      }
-    } else if (sectionContent) {
-      dropTarget = sectionContent;
-      
-      // Check if dropping between items
-      const targetItem = target.closest('.content-item, .canvas-subsection');
-      if (targetItem && targetItem !== draggedElement) {
-        const rect = targetItem.getBoundingClientRect();
-        const itemMiddle = rect.top + rect.height / 2;
-        position = clientY < itemMiddle ? 'above' : 'below';
-        dropTarget = targetItem.parentElement; // Use parent container
-      } else {
-        position = 'inside';
-      }
-    }
-  }
-  
-  return dropTarget ? { target: dropTarget, position, referenceElement: target.closest('.content-item, .canvas-subsection') } : null;
-}
-
-function isValidDrop(draggedType, dropTarget, position) {
-  // Don't allow dropping on self
-  if (dropTarget === draggedElement) return false;
-  
-  // Check if the section allows content (for "What is on this week" sections)
-  if (dropTarget.classList.contains('section-content')) {
-    const section = dropTarget.closest('.canvas-section');
-    if (section && section.classList.contains('special-section')) {
-      return false;
-    }
-  }
-  
-  // Validate hierarchy rules
-  const allowedContainers = getValidContainers(draggedType);
-  
-  if (draggedType === 'section') {
-    return dropTarget.classList.contains('canvas') || dropTarget.classList.contains('canvas-section');
-  } else {
-    return allowedContainers.some(containerType => {
-      if (containerType === 'section-content') {
-        return dropTarget.classList.contains('section-content');
-      }
-      if (containerType === 'subsection-content') {
-        return dropTarget.classList.contains('subsection-content');
-      }
-      return false;
-    });
-  }
-}
-
-function getValidContainers(itemType) {
-  switch (itemType) {
-    case 'section':
-      return ['canvas'];
-    case 'subsection':
-    case 'resource':
-    case 'activity':
-    case 'design-element':
-      return ['section-content', 'subsection-content'];
-    default:
-      return [];
-  }
-}
-
-function showDropFeedback(dropTarget, position) {
-  if (position === 'above' || position === 'below') {
-    const targetElement = dropTarget.classList.contains('canvas-section') ? 
-      dropTarget : dropTarget.querySelector('.content-item, .canvas-subsection');
-    
-    if (targetElement) {
-      targetElement.classList.add('drop-insertion-indicator');
-      targetElement.classList.add(`drop-${position}`);
-    }
-  } else {
-    dropTarget.classList.add('drag-over');
-  }
-}
-
-function clearAllDropIndicators() {
-  document.querySelectorAll('.drag-over, .drop-insertion-indicator, .drop-above, .drop-below').forEach(el => {
-    el.classList.remove('drag-over', 'drop-insertion-indicator', 'drop-above', 'drop-below');
-  });
-}
-
-function showDropZoneIndicator(x, y, isValid) {
-  if (!dropZoneIndicator) return;
-  
-  dropZoneIndicator.style.left = x + 15 + 'px';
-  dropZoneIndicator.style.top = y - 30 + 'px';
-  dropZoneIndicator.classList.remove('hidden');
-  
-  const content = dropZoneIndicator.querySelector('.drop-zone-content');
-  if (isValid) {
-    dropZoneIndicator.style.backgroundColor = 'var(--color-success)';
-    content.innerHTML = '<span class="drop-zone-icon">✅</span><span class="drop-zone-text">Drop here</span>';
-  } else {
-    dropZoneIndicator.style.backgroundColor = 'var(--color-error)';
-    content.innerHTML = '<span class="drop-zone-icon">❌</span><span class="drop-zone-text">Invalid drop</span>';
-  }
-}
-
-function hideDropZoneIndicator() {
-  if (dropZoneIndicator) {
-    dropZoneIndicator.classList.add('hidden');
-  }
-}
-
-// Handle Component Drop - Enhanced for better positioning
-function handleComponentDrop(componentEl, dropTarget, position) {
-  const template = appData.sectionTemplates.find(t => t.id === componentEl.dataset.id);
-  const itemData = {
-    id: generateId(),
-    name: componentEl.dataset.name,
-    icon: componentEl.dataset.icon,
-    type: componentEl.dataset.type,
-    originalId: componentEl.dataset.id,
-    allowsContent: componentEl.dataset.allowsContent === 'true',
-    preloadedContent: template?.preloadedContent || []
-  };
-
-  if (dropTarget.classList.contains('canvas') || dropTarget.classList.contains('canvas-section')) {
-    if (itemData.type === 'section') {
-      createCanvasSection(itemData, dropTarget, position);
-    }
-  } else if (dropTarget.classList.contains('section-content')) {
-    createContentInContainer(itemData, dropTarget, position);
-  } else if (dropTarget.classList.contains('subsection-content')) {
-    createContentInContainer(itemData, dropTarget, position);
-  }
-}
-
-// Canvas Management - Enhanced with preloaded content
-function createCanvasSection(itemData, dropTarget, position) {
-  const sectionEl = document.createElement('div');
-  sectionEl.className = `canvas-section ${!itemData.allowsContent ? 'special-section' : ''}`;
-  sectionEl.dataset.id = itemData.id;
-  sectionEl.dataset.type = 'section';
-  sectionEl.draggable = true;
-
-  sectionEl.innerHTML = `
-    <div class="section-header">
-      <div class="section-title" data-name="${itemData.name}">
-        <span class="component-icon">${itemData.icon}</span>
-        <span class="section-name">${itemData.name}</span>
-      </div>
-      <div class="section-controls">
-        <button class="control-btn" title="Move">↕️</button>
-        <button class="control-btn" title="Delete">🗑️</button>
-      </div>
-    </div>
-    <div class="section-content empty"></div>
-  `;
-
-  // Handle positioning
-  if (position === 'above' && dropTarget.classList.contains('canvas-section')) {
-    dropTarget.parentNode.insertBefore(sectionEl, dropTarget);
-  } else if (position === 'below' && dropTarget.classList.contains('canvas-section')) {
-    dropTarget.parentNode.insertBefore(sectionEl, dropTarget.nextSibling);
-  } else {
-    canvasEl.appendChild(sectionEl);
-  }
-  
-  // Add to canvas data with preloaded content
-  const sectionData = {
-    id: itemData.id,
-    name: itemData.name,
-    icon: itemData.icon,
-    type: 'section',
-    allowsContent: itemData.allowsContent,
-    summaryForStudents: '',
-    notesForDeveloper: '',
-    content: []
-  };
-
-  // Add preloaded content
-  if (itemData.preloadedContent && itemData.preloadedContent.length > 0) {
-    const sectionContent = sectionEl.querySelector('.section-content');
-    sectionContent.classList.remove('empty');
-    
-    itemData.preloadedContent.forEach(preloadedItem => {
-      const contentData = {
-        id: generateId(),
-        name: preloadedItem.name,
-        icon: preloadedItem.icon,
-        type: preloadedItem.type,
-        description: '',
-        approxLearningTime: '',
-        summaryForStudents: '',
-        notesForDeveloper: '',
-        content: preloadedItem.type === 'subsection' ? [] : undefined
-      };
-      
-      let contentEl;
-      if (preloadedItem.type === 'subsection') {
-        contentEl = createSubsectionElement(contentData);
-      } else {
-        contentEl = createContentElement(contentData);
-      }
-      
-      sectionContent.appendChild(contentEl);
-      sectionData.content.push(contentData);
-    });
-  }
-
-  // Insert into data array at correct position
-  if (position === 'above' && dropTarget.classList.contains('canvas-section')) {
-    const targetIndex = canvasData.sections.findIndex(s => s.id === dropTarget.dataset.id);
-    canvasData.sections.splice(targetIndex, 0, sectionData);
-  } else if (position === 'below' && dropTarget.classList.contains('canvas-section')) {
-    const targetIndex = canvasData.sections.findIndex(s => s.id === dropTarget.dataset.id);
-    canvasData.sections.splice(targetIndex + 1, 0, sectionData);
-  } else {
-    canvasData.sections.push(sectionData);
-  }
-
-  saveCanvasData();
-}
-
-function createContentInContainer(itemData, container, position) {
-  let contentEl;
-  
-  if (itemData.type === 'subsection') {
-    contentEl = createSubsectionElement(itemData);
-  } else {
-    contentEl = createContentElement(itemData);
-  }
-  
-  // Handle positioning within container
-  if (position === 'above' || position === 'below') {
-    const targetItem = container.querySelector('.content-item, .canvas-subsection');
-    if (targetItem) {
-      if (position === 'above') {
-        container.insertBefore(contentEl, targetItem);
-      } else {
-        container.insertBefore(contentEl, targetItem.nextSibling);
-      }
-    } else {
-      container.appendChild(contentEl);
-    }
-  } else {
-    container.appendChild(contentEl);
-  }
-  
-  container.classList.remove('empty');
-  
-  // Add to canvas data
-  const contentData = createContentData(itemData);
-  addToParentContent(container, contentData, position);
-  
-  saveCanvasData();
-}
-
-function createSubsectionElement(itemData) {
-  const subsectionEl = document.createElement('div');
-  subsectionEl.className = 'canvas-subsection';
-  subsectionEl.dataset.id = itemData.id;
-  subsectionEl.dataset.type = 'subsection';
-  subsectionEl.draggable = true;
-
-  subsectionEl.innerHTML = `
-    <div class="subsection-header">
-      <div class="subsection-title" data-name="${itemData.name}">
-        <span class="component-icon">📋</span>
-        <span class="subsection-name">${itemData.name}</span>
-      </div>
-      <div class="subsection-controls">
-        <button class="control-btn" title="Move">↕️</button>
-        <button class="control-btn" title="Delete">🗑️</button>
-      </div>
-    </div>
-    <div class="subsection-content empty"></div>
-  `;
-
-  return subsectionEl;
-}
-
-function createContentElement(itemData) {
-  const contentEl = document.createElement('div');
-  contentEl.className = 'content-item';
-  contentEl.dataset.id = itemData.id;
-  contentEl.dataset.type = itemData.type;
-  contentEl.draggable = true;
-
-  contentEl.innerHTML = `
-    <div class="content-title" data-name="${itemData.name}">
-      <span class="component-icon">${itemData.icon}</span>
-      <span class="content-name">${itemData.name}</span>
-    </div>
-    <div class="section-controls">
-      <button class="control-btn" title="Move">↕️</button>
-      <button class="control-btn" title="Delete">🗑️</button>
-    </div>
-  `;
-
-  return contentEl;
-}
-
-function createContentData(itemData) {
-  const baseData = {
-    id: itemData.id,
-    name: itemData.name,
-    icon: itemData.icon,
-    type: itemData.type
-  };
-  
-  if (itemData.type === 'subsection') {
-    return {
-      ...baseData,
-      summaryForStudents: '',
-      notesForDeveloper: '',
-      content: []
-    };
-  } else if (itemData.type === 'resource' || itemData.type === 'activity') {
-    return {
-      ...baseData,
-      description: '',
-      approxLearningTime: ''
-    };
-  } else {
-    return baseData;
-  }
-}
-
-function addToParentContent(container, contentData, position) {
-  if (container.classList.contains('section-content')) {
-    const sectionEl = container.closest('.canvas-section');
-    const sectionId = sectionEl.dataset.id;
-    const section = canvasData.sections.find(s => s.id === sectionId);
-    if (section) {
-      if (position === 'above' || position === 'below') {
-        // Handle specific positioning
-        const targetItem = container.querySelector('.content-item, .canvas-subsection');
-        if (targetItem) {
-          const targetIndex = section.content.findIndex(item => item.id === targetItem.dataset.id);
-          const insertIndex = position === 'above' ? targetIndex : targetIndex + 1;
-          section.content.splice(insertIndex, 0, contentData);
-        } else {
-          section.content.push(contentData);
-        }
-      } else {
-        section.content.push(contentData);
-      }
-    }
-  } else if (container.classList.contains('subsection-content')) {
-    const subsectionEl = container.closest('.canvas-subsection');
-    const subsectionId = subsectionEl.dataset.id;
-    const sectionEl = subsectionEl.closest('.canvas-section');
-    const sectionId = sectionEl.dataset.id;
-    const section = canvasData.sections.find(s => s.id === sectionId);
-    const subsection = section?.content?.find(item => item.id === subsectionId);
-    if (subsection) {
-      if (position === 'above' || position === 'below') {
-        const targetItem = container.querySelector('.content-item');
-        if (targetItem) {
-          const targetIndex = subsection.content.findIndex(item => item.id === targetItem.dataset.id);
-          const insertIndex = position === 'above' ? targetIndex : targetIndex + 1;
-          subsection.content.splice(insertIndex, 0, contentData);
-        } else {
-          subsection.content.push(contentData);
-        }
-      } else {
-        subsection.content.push(contentData);
-      }
-    }
-  }
-}
-
-// Enhanced Move Menu System - Fixed for proper hierarchical display and functionality
-function showMoveMenu(element) {
-  currentMoveElement = element;
-  const elementName = getCurrentDisplayName(element) || 'Unknown Item';
-  
-  document.getElementById('move-item-name').textContent = elementName;
-  
-  // Build hierarchical move list
-  buildMoveList();
-  
-  moveModal.classList.remove('hidden');
-}
-
-function buildMoveList() {
-  const moveList = document.getElementById('move-list');
-  moveList.innerHTML = '';
-  
-  if (canvasData.sections.length === 0) {
-    moveList.innerHTML = '<p style="text-align: center; color: var(--color-text-secondary);">No content available to move to.</p>';
-    return;
-  }
-  
-  // Add "Move to beginning" option
-  const beginningItem = createMoveItem('beginning', 'Move to beginning', '↑', 0, false);
-  moveList.appendChild(beginningItem);
-  
-  const separator = document.createElement('div');
-  separator.className = 'move-separator';
-  moveList.appendChild(separator);
-  
-  // Build hierarchical list
-  canvasData.sections.forEach((section) => {
-    const sectionItem = createMoveItem(section.id, section.name, section.icon, 0, section.id === currentMoveElement?.dataset.id);
-    moveList.appendChild(sectionItem);
-    
-    if (section.content && section.content.length > 0) {
-      section.content.forEach((item) => {
-        const contentItem = createMoveItem(item.id, item.name, item.icon, 1, item.id === currentMoveElement?.dataset.id);
-        moveList.appendChild(contentItem);
-        
-        // If it's a subsection, show its content
-        if (item.type === 'subsection' && item.content && item.content.length > 0) {
-          item.content.forEach((subItem) => {
-            const subContentItem = createMoveItem(subItem.id, subItem.name, subItem.icon, 2, subItem.id === currentMoveElement?.dataset.id);
-            moveList.appendChild(subContentItem);
-          });
-        }
-      });
-    }
-  });
-}
-
-function createMoveItem(id, name, icon, indentLevel, isDisabled) {
-  const item = document.createElement('div');
-  item.className = `move-item ${isDisabled ? 'disabled' : ''}`;
-  if (indentLevel === 1) item.classList.add('move-item-indent');
-  if (indentLevel === 2) item.classList.add('move-item-indent-2');
-  
-  item.innerHTML = `
-    <div class="move-item-content">
-      <span class="move-item-icon">${icon}</span>
-      <span>${name}</span>
-    </div>
-  `;
-  
-  if (!isDisabled) {
-    item.addEventListener('click', () => moveElementTo(id));
-  }
-  
-  return item;
-}
-
-function moveElementTo(targetId) {
-  if (!currentMoveElement) return;
-  
-  // Remove element from current location
-  const elementData = getElementData(currentMoveElement);
-  removeFromParentContent(currentMoveElement);
-  
-  // Add element to new location
-  if (targetId === 'beginning') {
-    // Move to beginning of canvas
-    if (currentMoveElement.classList.contains('canvas-section')) {
-      const firstSection = canvasEl.querySelector('.canvas-section');
-      if (firstSection && firstSection !== currentMoveElement) {
-        canvasEl.insertBefore(currentMoveElement, firstSection);
-        // Update data structure
-        const elementIndex = canvasData.sections.findIndex(s => s.id === currentMoveElement.dataset.id);
-        if (elementIndex > -1) {
-          const [element] = canvasData.sections.splice(elementIndex, 1);
-          canvasData.sections.unshift(element);
-        }
-      }
-    }
-  } else {
-    // Move after the specified element
-    moveAfterElement(currentMoveElement, targetId, elementData);
-  }
-  
-  saveCanvasData();
-  closeMoveModal();
-}
-
-function moveAfterElement(element, targetId, elementData) {
-  // Find target element and insert after it
-  const targetElement = findElementById(targetId);
-  if (!targetElement) return;
-  
-  // Determine where to insert based on target element type
-  if (targetElement.classList.contains('canvas-section')) {
-    // Insert after section
-    if (element.classList.contains('canvas-section')) {
-      targetElement.parentNode.insertBefore(element, targetElement.nextSibling);
-      // Update data
-      const elementIndex = canvasData.sections.findIndex(s => s.id === element.dataset.id);
-      const targetIndex = canvasData.sections.findIndex(s => s.id === targetId);
-      if (elementIndex > -1 && targetIndex > -1) {
-        const [movedElement] = canvasData.sections.splice(elementIndex, 1);
-        canvasData.sections.splice(targetIndex + 1, 0, movedElement);
-      }
-    } else {
-      // Insert content into section
-      const sectionContent = targetElement.querySelector('.section-content');
-      sectionContent.appendChild(element);
-      sectionContent.classList.remove('empty');
-      
-      // Update data
-      const sectionId = targetElement.dataset.id;
-      const section = canvasData.sections.find(s => s.id === sectionId);
-      if (section) {
-        section.content.push(elementData);
-      }
-    }
-  } else {
-    // Insert after other content
-    const parent = targetElement.parentElement;
-    parent.insertBefore(element, targetElement.nextSibling);
-    
-    // Update data structure
-    updateDataAfterMove(element, parent, elementData, targetId);
-  }
-}
-
-function findElementById(id) {
-  return document.querySelector(`[data-id="${id}"]`);
-}
-
-function updateDataAfterMove(element, newParent, elementData, targetId) {
-  if (newParent.classList.contains('section-content')) {
-    const sectionEl = newParent.closest('.canvas-section');
-    const sectionId = sectionEl.dataset.id;
-    const section = canvasData.sections.find(s => s.id === sectionId);
-    if (section) {
-      const targetIndex = section.content.findIndex(item => item.id === targetId);
-      section.content.splice(targetIndex + 1, 0, elementData);
-    }
-  } else if (newParent.classList.contains('subsection-content')) {
-    const subsectionEl = newParent.closest('.canvas-subsection');
-    const subsectionId = subsectionEl.dataset.id;
-    const sectionEl = subsectionEl.closest('.canvas-section');
-    const sectionId = sectionEl.dataset.id;
-    const section = canvasData.sections.find(s => s.id === sectionId);
-    const subsection = section?.content?.find(item => item.id === subsectionId);
-    if (subsection) {
-      const targetIndex = subsection.content.findIndex(item => item.id === targetId);
-      subsection.content.splice(targetIndex + 1, 0, elementData);
-    }
-  }
-}
-
-function closeMoveModal() {
-  moveModal.classList.add('hidden');
-  currentMoveElement = null;
-}
-
-// Enhanced Delete Functionality with Confirmation
-function showDeleteConfirmation(element) {
-  currentDeleteElement = element;
-  const elementName = getCurrentDisplayName(element) || 'Unknown Item';
-  
-  document.getElementById('delete-item-name').textContent = elementName;
-  deleteModal.classList.remove('hidden');
-}
-
-function confirmDelete() {
-  if (!currentDeleteElement) return;
-  
-  deleteItem(currentDeleteElement);
-  closeDeleteModal();
-}
-
-function closeDeleteModal() {
-  deleteModal.classList.add('hidden');
-  currentDeleteElement = null;
-}
-
-function deleteItem(element) {
-  const elementId = element.dataset.id;
-  
-  if (element.classList.contains('canvas-section')) {
-    // Remove from canvas data
-    canvasData.sections = canvasData.sections.filter(s => s.id !== elementId);
-  } else {
-    // Remove from parent content array
-    removeFromParentContent(element);
-  }
-  
-  element.remove();
-  saveCanvasData();
-  clearSelection();
-  
-  // Show placeholder if canvas is empty
-  if (canvasEl.querySelectorAll('.canvas-section').length === 0) {
-    canvasPlaceholder.style.display = 'flex';
-  }
-}
-
-function removeFromParentContent(element) {
-  const elementId = element.dataset.id;
-  const parentContentEl = element.parentElement;
-  
-  if (parentContentEl.classList.contains('section-content')) {
-    // Remove from section content
-    const sectionEl = parentContentEl.closest('.canvas-section');
-    const sectionId = sectionEl.dataset.id;
-    const section = canvasData.sections.find(s => s.id === sectionId);
-    if (section) {
-      section.content = section.content.filter(item => item.id !== elementId);
-    }
-    
-    // Check if section is now empty
-    if (parentContentEl.children.length === 1) {
-      parentContentEl.classList.add('empty');
-    }
-  } else if (parentContentEl.classList.contains('subsection-content')) {
-    // Remove from subsection content
-    const subsectionEl = parentContentEl.closest('.canvas-subsection');
-    const subsectionId = subsectionEl.dataset.id;
-    const sectionEl = subsectionEl.closest('.canvas-section');
-    const sectionId = sectionEl.dataset.id;
-    const section = canvasData.sections.find(s => s.id === sectionId);
-    const subsection = section?.content?.find(item => item.id === subsectionId);
-    
-    if (subsection) {
-      subsection.content = subsection.content.filter(item => item.id !== elementId);
-    }
-    
-    // Check if subsection is now empty
-    if (parentContentEl.children.length === 1) {
-      parentContentEl.classList.add('empty');
-    }
-  }
-}
-
-// Context Menu - Updated for new functionality
-function handleContextMenu(e) {
-  const target = e.target.closest('.canvas-section, .canvas-subsection, .content-item');
-  if (target) {
-    e.preventDefault();
-    contextMenuTarget = target;
-    
-    contextMenu.style.left = e.clientX + 'px';
-    contextMenu.style.top = e.clientY + 'px';
-    contextMenu.classList.remove('hidden');
-  }
-}
-
-function hideContextMenu() {
-  contextMenu.classList.add('hidden');
-  contextMenuTarget = null;
-}
-
-function openMoveMenuFromContext() {
-  if (contextMenuTarget) {
-    showMoveMenu(contextMenuTarget);
-  }
-  hideContextMenu();
-}
-
-function openDeleteConfirmationFromContext() {
-  if (contextMenuTarget) {
-    showDeleteConfirmation(contextMenuTarget);
-  }
-  hideContextMenu();
-}
-
-// Enhanced existing element move handler for bidirectional support
-function handleExistingElementMove(element, dropTarget, position) {
-  const parentEl = element.parentElement;
-  
-  // Remove from current parent data
-  const elementData = getElementData(element);
-  removeFromParentContent(element);
-  
-  // Handle different drop scenarios with positioning
-  if (dropTarget.classList.contains('canvas') || dropTarget.classList.contains('canvas-section')) {
-    if (element.classList.contains('canvas-section')) {
-      // Moving sections within canvas
-      if (position === 'above') {
-        dropTarget.parentNode.insertBefore(element, dropTarget);
-      } else if (position === 'below') {
-        dropTarget.parentNode.insertBefore(element, dropTarget.nextSibling);
-      }
-      
-      // Update data array
-      const elementIndex = canvasData.sections.findIndex(s => s.id === element.dataset.id);
-      const targetIndex = canvasData.sections.findIndex(s => s.id === dropTarget.dataset.id);
-      
-      if (elementIndex > -1 && targetIndex > -1) {
-        const [movedElement] = canvasData.sections.splice(elementIndex, 1);
-        const newIndex = position === 'above' ? targetIndex : targetIndex + 1;
-        canvasData.sections.splice(newIndex, 0, movedElement);
-      }
-    }
-  } else {
-    // Moving content within containers
-    if (position === 'above' || position === 'below') {
-      const referenceElement = dropTarget.querySelector('.content-item, .canvas-subsection');
-      if (referenceElement) {
-        if (position === 'above') {
-          dropTarget.insertBefore(element, referenceElement);
-        } else {
-          dropTarget.insertBefore(element, referenceElement.nextSibling);
-        }
-      } else {
-        dropTarget.appendChild(element);
-      }
-    } else {
-      dropTarget.appendChild(element);
-    }
-    
-    dropTarget.classList.remove('empty');
-    addToParentContent(dropTarget, elementData, position);
-  }
-  
-  // Check if old parent is now empty
-  if (parentEl && parentEl.children.length === 0 && 
-      (parentEl.classList.contains('section-content') || parentEl.classList.contains('subsection-content'))) {
-    parentEl.classList.add('empty');
-  }
-  
-  saveCanvasData();
-}
-
-// Element Selection and Properties Management
+// Element Selection
 function selectElement(element) {
-  // Clear previous selection
   document.querySelectorAll('.selected').forEach(el => el.classList.remove('selected'));
-  
-  // Select current element
   element.classList.add('selected');
   selectedElement = element;
-  
-  // Update properties panel
   updatePropertiesPanel(element);
 }
 
@@ -1255,12 +292,11 @@ function clearSelection() {
   propertiesContent.innerHTML = '<p class="properties-empty">Select an item to edit its properties.</p>';
 }
 
+// Properties Panel Management
 function updatePropertiesPanel(element) {
   const elementType = getElementType(element);
   const elementData = getElementData(element);
-  const fields = appData.propertyFields[elementType] || [];
-  
-  // Get current display name for smart default
+  const fields = getPropertyFields(elementType);
   const currentDisplayName = getCurrentDisplayName(element);
   
   let html = '<form class="properties-form">';
@@ -1269,7 +305,6 @@ function updatePropertiesPanel(element) {
     const label = formatFieldLabel(field);
     let value = elementData[field] || '';
     
-    // Smart default for name field - use current display name if no stored value
     if (field === 'name' && !value && currentDisplayName) {
       value = currentDisplayName;
     }
@@ -1309,9 +344,6 @@ function getCurrentDisplayName(element) {
   if (element.classList.contains('canvas-section')) {
     const nameEl = element.querySelector('.section-name');
     return nameEl ? nameEl.textContent : null;
-  } else if (element.classList.contains('canvas-subsection')) {
-    const nameEl = element.querySelector('.subsection-name');
-    return nameEl ? nameEl.textContent : null;
   } else if (element.classList.contains('content-item')) {
     const nameEl = element.querySelector('.content-name');
     return nameEl ? nameEl.textContent : null;
@@ -1333,12 +365,20 @@ function formatFieldLabel(field) {
 function getElementType(element) {
   if (element.classList.contains('canvas-section')) {
     return 'section';
-  } else if (element.classList.contains('canvas-subsection')) {
-    return 'subsection';
   } else if (element.classList.contains('content-item')) {
     return element.dataset.type;
   }
   return null;
+}
+
+function getPropertyFields(elementType) {
+  const propertyFields = {
+    "section": ["name", "summaryForStudents", "notesForDeveloper"],
+    "resource": ["name", "description", "approxLearningTime"],
+    "activity": ["name", "description", "approxLearningTime"],
+    "design-element": ["name"]
+  };
+  return propertyFields[elementType] || [];
 }
 
 function getElementData(element) {
@@ -1346,25 +386,11 @@ function getElementData(element) {
   
   if (element.classList.contains('canvas-section')) {
     return canvasData.sections.find(s => s.id === elementId) || {};
-  } else if (element.classList.contains('canvas-subsection')) {
+  } else if (element.classList.contains('content-item')) {
     const sectionEl = element.closest('.canvas-section');
     const sectionId = sectionEl.dataset.id;
     const section = canvasData.sections.find(s => s.id === sectionId);
     return section?.content?.find(item => item.id === elementId) || {};
-  } else if (element.classList.contains('content-item')) {
-    const parentEl = element.parentElement.closest('.canvas-section, .canvas-subsection');
-    if (parentEl.classList.contains('canvas-section')) {
-      const sectionId = parentEl.dataset.id;
-      const section = canvasData.sections.find(s => s.id === sectionId);
-      return section?.content?.find(item => item.id === elementId) || {};
-    } else {
-      const subsectionId = parentEl.dataset.id;
-      const sectionEl = parentEl.closest('.canvas-section');
-      const sectionId = sectionEl.dataset.id;
-      const section = canvasData.sections.find(s => s.id === sectionId);
-      const subsection = section?.content?.find(item => item.id === subsectionId);
-      return subsection?.content?.find(item => item.id === elementId) || {};
-    }
   }
   
   return {};
@@ -1382,34 +408,11 @@ function updateElementData(element, fieldName, fieldValue) {
         if (nameEl) nameEl.textContent = fieldValue;
       }
     }
-  } else if (element.classList.contains('canvas-subsection')) {
+  } else if (element.classList.contains('content-item')) {
     const sectionEl = element.closest('.canvas-section');
     const sectionId = sectionEl.dataset.id;
     const section = canvasData.sections.find(s => s.id === sectionId);
-    const subsection = section?.content?.find(item => item.id === elementId);
-    if (subsection) {
-      subsection[fieldName] = fieldValue;
-      if (fieldName === 'name') {
-        const nameEl = element.querySelector('.subsection-name');
-        if (nameEl) nameEl.textContent = fieldValue;
-      }
-    }
-  } else if (element.classList.contains('content-item')) {
-    const parentEl = element.parentElement.closest('.canvas-section, .canvas-subsection');
-    let targetContent;
-    
-    if (parentEl.classList.contains('canvas-section')) {
-      const sectionId = parentEl.dataset.id;
-      const section = canvasData.sections.find(s => s.id === sectionId);
-      targetContent = section?.content?.find(item => item.id === elementId);
-    } else {
-      const subsectionId = parentEl.dataset.id;
-      const sectionEl = parentEl.closest('.canvas-section');
-      const sectionId = sectionEl.dataset.id;
-      const section = canvasData.sections.find(s => s.id === sectionId);
-      const subsection = section?.content?.find(item => item.id === subsectionId);
-      targetContent = subsection?.content?.find(item => item.id === elementId);
-    }
+    const targetContent = section?.content?.find(item => item.id === elementId);
     
     if (targetContent) {
       targetContent[fieldName] = fieldValue;
@@ -1421,6 +424,756 @@ function updateElementData(element, fieldName, fieldValue) {
   }
   
   saveCanvasData();
+}
+
+// FIXED: Drag and Drop Handlers
+function handleDragStart(e) {
+  if (!e.target.classList.contains('component-item') && 
+      !e.target.classList.contains('canvas-section') && 
+      !e.target.classList.contains('content-item')) {
+    return;
+  }
+
+  draggedElement = e.target;
+  e.target.classList.add('dragging');
+
+  const name = e.target.dataset.name || 
+                e.target.querySelector('.section-name, .content-name')?.textContent || 
+                'Unknown Item';
+  
+  dragPreview.textContent = name;
+  dragPreview.classList.remove('hidden');
+  dragPreview.style.left = e.clientX + 10 + 'px';
+  dragPreview.style.top = e.clientY + 10 + 'px';
+
+  e.dataTransfer.effectAllowed = 'move';
+  e.dataTransfer.setData('text/plain', '');
+}
+
+// FIXED: Enhanced handleDragOver
+function handleDragOver(e) {
+  e.preventDefault();
+
+  if (!dragPreview.classList.contains('hidden')) {
+    dragPreview.style.left = e.clientX + 10 + 'px';
+    dragPreview.style.top = e.clientY + 10 + 'px';
+  }
+
+  if (!draggedElement) return;
+
+  const draggedType = getDraggedElementType();
+  const dropTarget = findValidDropTarget(e.target, draggedType);
+  
+  document.querySelectorAll('.drag-over, .invalid-drop').forEach(el => {
+    el.classList.remove('drag-over', 'invalid-drop');
+  });
+  clearInsertionIndicators();
+
+  if (dropTarget && isValidDrop(draggedType, dropTarget)) {
+    dropTarget.classList.add('drag-over');
+    currentDropContainer = dropTarget;
+    
+    if (dropTarget.classList.contains('section-content')) {
+      const insertionInfo = calculateInsertionIndex(dropTarget, e.clientY);
+      insertionIndex = insertionInfo.index;
+      showDropIndicator(dropTarget, insertionInfo.index, insertionInfo.position);
+    } else if (dropTarget.classList.contains('canvas')) {
+      const insertionInfo = calculateCanvasInsertionIndex(dropTarget, e.clientY);
+      insertionIndex = insertionInfo.index;
+      showCanvasDropIndicator(dropTarget, insertionInfo.index);
+    }
+    
+    e.dataTransfer.dropEffect = 'move';
+    showDropZoneIndicator(e.clientX, e.clientY, true);
+    dragOverElement = dropTarget;
+  } else {
+    e.dataTransfer.dropEffect = 'none';
+    showDropZoneIndicator(e.clientX, e.clientY, false);
+    dragOverElement = null;
+    currentDropContainer = null;
+    insertionIndex = -1;
+  }
+}
+
+// FIXED: Enhanced handleDrop
+function handleDrop(e) {
+  e.preventDefault();
+  
+  clearInsertionIndicators();
+  
+  if (!draggedElement || !dragOverElement) {
+    hideDropZoneIndicator();
+    return;
+  }
+
+  if (canvasPlaceholder) {
+    canvasPlaceholder.style.display = 'none';
+  }
+
+  if (draggedElement.classList.contains('component-item')) {
+    handleComponentDrop(draggedElement, dragOverElement);
+  } else {
+    handleExistingElementMove(draggedElement, dragOverElement);
+  }
+
+  hideDropZoneIndicator();
+  dragOverElement = null;
+  currentDropContainer = null;
+  insertionIndex = -1;
+  
+  document.querySelectorAll('.drag-over, .invalid-drop').forEach(el => {
+    el.classList.remove('drag-over', 'invalid-drop');
+  });
+}
+
+function handleDragEnd(e) {
+  if (e.target.classList.contains('dragging')) {
+    e.target.classList.remove('dragging');
+  }
+  
+  clearInsertionIndicators();
+  draggedElement = null;
+  dragOverElement = null;
+  currentDropContainer = null;
+  insertionIndex = -1;
+  dragPreview.classList.add('hidden');
+  hideDropZoneIndicator();
+  
+  document.querySelectorAll('.drag-over, .invalid-drop').forEach(el => {
+    el.classList.remove('drag-over', 'invalid-drop');
+  });
+}
+
+// Helper Functions for Drag and Drop
+function getDraggedElementType() {
+  if (!draggedElement) return null;
+  
+  if (draggedElement.classList.contains('component-item')) {
+    return draggedElement.dataset.type;
+  } else if (draggedElement.classList.contains('canvas-section')) {
+    return 'section';
+  } else if (draggedElement.classList.contains('content-item')) {
+    return draggedElement.dataset.type;
+  }
+  
+  return null;
+}
+
+function findValidDropTarget(target, draggedType) {
+  if (!draggedType) return null;
+
+  if (draggedType === 'section') {
+    return target.closest('.canvas');
+  } else {
+    const sectionContent = target.closest('.section-content');
+    if (sectionContent) {
+      return sectionContent;
+    }
+  }
+  
+  return null;
+}
+
+function isValidDrop(draggedType, dropTarget) {
+  if (dropTarget.classList.contains('section-content')) {
+    const section = dropTarget.closest('.canvas-section');
+    if (section && section.classList.contains('special-section')) {
+      return false;
+    }
+  }
+  
+  return true;
+}
+
+function calculateInsertionIndex(container, clientY) {
+  const children = Array.from(container.children);
+  if (children.length === 0) {
+    return { index: 0, position: 'start' };
+  }
+
+  for (let i = 0; i < children.length; i++) {
+    const child = children[i];
+    const rect = child.getBoundingClientRect();
+    const midpoint = rect.top + (rect.height / 2);
+    
+    if (clientY < midpoint) {
+      return { index: i, position: 'before' };
+    }
+  }
+  
+  return { index: children.length, position: 'after' };
+}
+
+function calculateCanvasInsertionIndex(canvas, clientY) {
+  const sections = Array.from(canvas.querySelectorAll('.canvas-section'));
+  if (sections.length === 0) {
+    return { index: 0, position: 'start' };
+  }
+
+  for (let i = 0; i < sections.length; i++) {
+    const section = sections[i];
+    const rect = section.getBoundingClientRect();
+    const midpoint = rect.top + (rect.height / 2);
+    
+    if (clientY < midpoint) {
+      return { index: i, position: 'before' };
+    }
+  }
+  
+  return { index: sections.length, position: 'after' };
+}
+
+function showDropIndicator(container, index, position) {
+  clearInsertionIndicators();
+  
+  const indicator = document.createElement('div');
+  indicator.className = 'drop-insertion-line active';
+  indicator.id = 'insertion-indicator';
+  
+  const children = Array.from(container.children);
+  
+  if (position === 'start' || children.length === 0) {
+    container.insertBefore(indicator, container.firstChild);
+  } else if (position === 'after' || index >= children.length) {
+    container.appendChild(indicator);
+  } else {
+    container.insertBefore(indicator, children[index]);
+  }
+}
+
+function showCanvasDropIndicator(canvas, index) {
+  clearInsertionIndicators();
+  
+  const indicator = document.createElement('div');
+  indicator.className = 'drop-insertion-line active';
+  indicator.id = 'canvas-insertion-indicator';
+  indicator.style.margin = '10px 0';
+  indicator.style.height = '3px';
+  
+  const sections = Array.from(canvas.querySelectorAll('.canvas-section'));
+  
+  if (sections.length === 0 || index === 0) {
+    canvas.insertBefore(indicator, canvas.firstChild);
+  } else if (index >= sections.length) {
+    canvas.insertBefore(indicator, canvas.lastElementChild);
+  } else {
+    canvas.insertBefore(indicator, sections[index]);
+  }
+}
+
+function clearInsertionIndicators() {
+  const indicators = document.querySelectorAll('#insertion-indicator, #canvas-insertion-indicator');
+  indicators.forEach(indicator => indicator.remove());
+}
+
+function showDropZoneIndicator(x, y, isValid) {
+  if (!dropZoneIndicator) return;
+  
+  dropZoneIndicator.style.left = x + 15 + 'px';
+  dropZoneIndicator.style.top = y - 30 + 'px';
+  dropZoneIndicator.classList.remove('hidden');
+  
+  const content = dropZoneIndicator.querySelector('.drop-zone-content');
+  if (isValid) {
+    dropZoneIndicator.style.backgroundColor = 'var(--color-success)';
+    content.innerHTML = '<span class="drop-zone-icon">✅</span><span class="drop-zone-text">Drop here</span>';
+  } else {
+    dropZoneIndicator.style.backgroundColor = 'var(--color-error)';
+    content.innerHTML = '<span class="drop-zone-icon">❌</span><span class="drop-zone-text">Invalid drop</span>';
+  }
+}
+
+function hideDropZoneIndicator() {
+  if (dropZoneIndicator) {
+    dropZoneIndicator.classList.add('hidden');
+  }
+}
+
+// FIXED: Handle Component Drop
+function handleComponentDrop(componentEl, dropTarget) {
+  const originalTemplate = appData.sectionTemplates.find(t => t.id === componentEl.dataset.id);
+  
+  const itemData = {
+    id: generateId(),
+    name: componentEl.dataset.name,
+    icon: componentEl.dataset.icon,
+    type: componentEl.dataset.type,
+    originalId: componentEl.dataset.id,
+    allowsContent: componentEl.dataset.allowsContent === 'true',
+    preloadedContent: originalTemplate?.preloadedContent || []
+  };
+
+  if (dropTarget.classList.contains('canvas')) {
+    if (itemData.type === 'section') {
+      createCanvasSection(itemData);
+    }
+  } else if (dropTarget.classList.contains('section-content')) {
+    const sectionEl = dropTarget.closest('.canvas-section');
+    createContentInSection(itemData, sectionEl);
+  }
+}
+
+// FIXED: Handle existing element move
+function handleExistingElementMove(element, dropTarget) {
+  const parentEl = element.parentElement;
+  const elementData = getElementData(element);
+  
+  removeFromParentContent(element);
+  element.remove();
+  
+  if (dropTarget.classList.contains('canvas') && element.classList.contains('canvas-section')) {
+    canvasEl.appendChild(element);
+    canvasData.sections.push(elementData);
+  } else if (dropTarget.classList.contains('section-content')) {
+    dropTarget.appendChild(element);
+    dropTarget.classList.remove('empty');
+    const sectionEl = dropTarget.closest('.canvas-section');
+    addToSectionContent(elementData, sectionEl);
+  }
+  
+  if (parentEl && parentEl.children.length === 0 && parentEl.classList.contains('section-content')) {
+    parentEl.classList.add('empty');
+  }
+  
+  saveCanvasData();
+}
+
+// Canvas Management
+function createCanvasSection(itemData) {
+  const sectionEl = document.createElement('div');
+  sectionEl.className = `canvas-section ${!itemData.allowsContent ? 'special-section' : ''}`;
+  sectionEl.dataset.id = itemData.id;
+  sectionEl.dataset.type = 'section';
+  sectionEl.draggable = true;
+
+  sectionEl.innerHTML = `
+    <div class="section-header">
+      <div class="section-title" data-name="${itemData.name}">
+        <span class="component-icon">${itemData.icon}</span>
+        <span class="section-name">${itemData.name}</span>
+      </div>
+      <div class="section-controls">
+        <button class="control-btn" data-action="edit">✏️</button>
+        <button class="control-btn" data-action="move">↕️</button>
+        <button class="control-btn" data-action="delete">🗑️</button>
+      </div>
+    </div>
+    <div class="section-content empty"></div>
+  `;
+
+  canvasEl.appendChild(sectionEl);
+  
+  const sectionData = {
+    id: itemData.id,
+    name: itemData.name,
+    icon: itemData.icon,
+    type: 'section',
+    allowsContent: itemData.allowsContent,
+    summaryForStudents: '',
+    notesForDeveloper: '',
+    content: []
+  };
+  
+  canvasData.sections.push(sectionData);
+  
+  if (itemData.preloadedContent && itemData.preloadedContent.length > 0) {
+    const sectionContent = sectionEl.querySelector('.section-content');
+    itemData.preloadedContent.forEach(preloadedItem => {
+      const contentData = {
+        id: generateId(),
+        name: preloadedItem.name,
+        icon: preloadedItem.icon,
+        type: preloadedItem.type
+      };
+      
+      const contentEl = createContentElement(contentData);
+      sectionContent.appendChild(contentEl);
+      sectionData.content.push({
+        ...contentData,
+        description: '',
+        approxLearningTime: ''
+      });
+    });
+    
+    if (itemData.preloadedContent.length > 0) {
+      sectionContent.classList.remove('empty');
+    }
+  }
+
+  saveCanvasData();
+}
+
+function createContentInSection(itemData, sectionEl) {
+  const sectionContent = sectionEl.querySelector('.section-content');
+  const contentEl = createContentElement(itemData);
+  sectionContent.appendChild(contentEl);
+  
+  sectionContent.classList.remove('empty');
+  
+  const sectionId = sectionEl.dataset.id;
+  const section = canvasData.sections.find(s => s.id === sectionId);
+  if (section) {
+    const contentData = createContentData(itemData);
+    section.content.push(contentData);
+  }
+  
+  saveCanvasData();
+}
+
+function createContentElement(itemData) {
+  const contentEl = document.createElement('div');
+  contentEl.className = 'content-item';
+  contentEl.dataset.id = itemData.id;
+  contentEl.dataset.type = itemData.type;
+  contentEl.draggable = true;
+
+  contentEl.innerHTML = `
+    <div class="content-title" data-name="${itemData.name}">
+      <span class="component-icon">${itemData.icon}</span>
+      <span class="content-name">${itemData.name}</span>
+    </div>
+    <div class="section-controls">
+      <button class="control-btn" data-action="edit">✏️</button>
+      <button class="control-btn" data-action="move">↕️</button>
+      <button class="control-btn" data-action="delete">🗑️</button>
+    </div>
+  `;
+
+  return contentEl;
+}
+
+function createContentData(itemData) {
+  const baseData = {
+    id: itemData.id,
+    name: itemData.name,
+    icon: itemData.icon,
+    type: itemData.type
+  };
+  
+  if (itemData.type === 'resource' || itemData.type === 'activity') {
+    return {
+      ...baseData,
+      description: '',
+      approxLearningTime: ''
+    };
+  } else {
+    return baseData;
+  }
+}
+
+function addToSectionContent(contentData, sectionEl) {
+  const sectionId = sectionEl.dataset.id;
+  const section = canvasData.sections.find(s => s.id === sectionId);
+  if (section) {
+    section.content.push(contentData);
+  }
+}
+
+// FIXED: Move Menu System
+function showMoveMenu(element) {
+  currentMoveElement = element;
+  const elementName = getCurrentDisplayName(element) || 'Unknown Item';
+  
+  document.getElementById('move-item-name').textContent = elementName;
+  buildMoveList();
+  moveModal.classList.remove('hidden');
+}
+
+function buildMoveList() {
+  const moveList = document.getElementById('move-list');
+  moveList.innerHTML = '';
+  
+  if (canvasData.sections.length === 0) {
+    moveList.innerHTML = '<p style="text-align: center; color: var(--color-text-secondary);">No content available to move to.</p>';
+    return;
+  }
+  
+  const beginningItem = createMoveItem('beginning', 'Move to beginning', '↑', 0, false);
+  moveList.appendChild(beginningItem);
+  
+  const separator = document.createElement('div');
+  separator.className = 'move-separator';
+  moveList.appendChild(separator);
+  
+  canvasData.sections.forEach((section) => {
+    const currentElementId = currentMoveElement ? currentMoveElement.dataset.id : null;
+    if (currentElementId !== section.id) {
+      const sectionItem = createMoveItem(section.id, section.name, section.icon, 0, false);
+      moveList.appendChild(sectionItem);
+    }
+    
+    if (section.content && section.content.length > 0) {
+      section.content.forEach((item) => {
+        if (currentElementId !== item.id) {
+          const contentItem = createMoveItem(item.id, item.name, item.icon, 1, false);
+          moveList.appendChild(contentItem);
+        }
+      });
+    }
+  });
+}
+
+function createMoveItem(id, name, icon, indentLevel, isDisabled) {
+  const item = document.createElement('div');
+  item.className = `move-item ${isDisabled ? 'disabled' : ''}`;
+  if (indentLevel === 1) item.classList.add('move-item-indent');
+  if (indentLevel === 2) item.classList.add('move-item-indent-2');
+  
+  item.innerHTML = `
+    <div class="move-item-content">
+      <span class="move-item-icon">${icon}</span>
+      <span>${name}</span>
+    </div>
+  `;
+  
+  if (!isDisabled) {
+    item.addEventListener('click', () => moveElementToPosition(id));
+  }
+  
+  return item;
+}
+
+// FIXED: Move element to position
+function moveElementToPosition(targetId) {
+  if (!currentMoveElement) {
+    console.error('No element selected for moving');
+    return;
+  }
+  
+  try {
+    const elementData = getElementData(currentMoveElement);
+    
+    removeFromParentContent(currentMoveElement);
+    const oldParent = currentMoveElement.parentElement;
+    currentMoveElement.remove();
+    
+    if (oldParent && oldParent.classList.contains('section-content')) {
+      if (oldParent.children.length === 0) {
+        oldParent.classList.add('empty');
+      }
+    }
+    
+    if (targetId === 'beginning') {
+      moveToBeginning();
+    } else {
+      moveAfterTargetElement(targetId, elementData);
+    }
+    
+    saveCanvasData();
+    closeMoveModal();
+  } catch (error) {
+    console.error('Error moving element:', error);
+    alert('Failed to move element. Please try again.');
+  }
+}
+
+function moveToBeginning() {
+  if (currentMoveElement.classList.contains('canvas-section')) {
+    const firstSection = canvasEl.querySelector('.canvas-section');
+    if (firstSection) {
+      canvasEl.insertBefore(currentMoveElement, firstSection);
+    } else {
+      canvasEl.insertBefore(currentMoveElement, canvasPlaceholder);
+    }
+    
+    const elementId = currentMoveElement.dataset.id;
+    const elementIndex = canvasData.sections.findIndex(s => s.id === elementId);
+    if (elementIndex > -1) {
+      const [element] = canvasData.sections.splice(elementIndex, 1);
+      canvasData.sections.unshift(element);
+    }
+  } else {
+    const firstSection = canvasEl.querySelector('.canvas-section:not(.special-section)');
+    if (firstSection) {
+      const sectionContent = firstSection.querySelector('.section-content');
+      sectionContent.insertBefore(currentMoveElement, sectionContent.firstChild);
+      sectionContent.classList.remove('empty');
+      
+      const sectionId = firstSection.dataset.id;
+      const section = canvasData.sections.find(s => s.id === sectionId);
+      if (section) {
+        const elementData = getElementData(currentMoveElement);
+        section.content.unshift(elementData);
+      }
+    }
+  }
+}
+
+function moveAfterTargetElement(targetId, elementData) {
+  const targetElement = findElementById(targetId);
+  if (!targetElement) {
+    console.error('Target element not found:', targetId);
+    return;
+  }
+  
+  if (targetElement.classList.contains('canvas-section')) {
+    if (currentMoveElement.classList.contains('canvas-section')) {
+      targetElement.parentNode.insertBefore(currentMoveElement, targetElement.nextSibling);
+      updateSectionOrder();
+    } else {
+      const sectionContent = targetElement.querySelector('.section-content');
+      sectionContent.appendChild(currentMoveElement);
+      sectionContent.classList.remove('empty');
+      
+      const sectionId = targetElement.dataset.id;
+      const section = canvasData.sections.find(s => s.id === sectionId);
+      if (section) {
+        section.content.push(elementData);
+      }
+    }
+  } else if (targetElement.classList.contains('content-item')) {
+    const parent = targetElement.parentElement;
+    parent.insertBefore(currentMoveElement, targetElement.nextSibling);
+    updateParentContentOrder(parent);
+  }
+}
+
+function updateSectionOrder() {
+  const sections = Array.from(canvasEl.querySelectorAll('.canvas-section'));
+  const newOrder = [];
+  
+  sections.forEach(sectionEl => {
+    const sectionId = sectionEl.dataset.id;
+    const sectionData = canvasData.sections.find(s => s.id === sectionId);
+    if (sectionData) {
+      newOrder.push(sectionData);
+    }
+  });
+  
+  canvasData.sections = newOrder;
+}
+
+function updateParentContentOrder(parent) {
+  if (parent.classList.contains('section-content')) {
+    const sectionEl = parent.closest('.canvas-section');
+    const sectionId = sectionEl.dataset.id;
+    const section = canvasData.sections.find(s => s.id === sectionId);
+    
+    if (section) {
+      const newOrder = [];
+      Array.from(parent.children).forEach(child => {
+        if (child.dataset.id) {
+          const itemData = section.content.find(item => item.id === child.dataset.id);
+          if (itemData) {
+            newOrder.push(itemData);
+          }
+        }
+      });
+      section.content = newOrder;
+    }
+  }
+}
+
+function findElementById(id) {
+  return document.querySelector(`[data-id="${id}"]`);
+}
+
+function closeMoveModal() {
+  moveModal.classList.add('hidden');
+  currentMoveElement = null;
+}
+
+// FIXED: Delete Functionality with Confirmation
+function showDeleteConfirmation(element) {
+  currentDeleteElement = element;
+  const elementName = getCurrentDisplayName(element) || 'Unknown Item';
+  
+  document.getElementById('delete-item-name').textContent = elementName;
+  deleteModal.classList.remove('hidden');
+}
+
+function confirmDelete() {
+  if (!currentDeleteElement) {
+    console.error('No element selected for deletion');
+    return;
+  }
+
+  try {
+    const elementId = currentDeleteElement.dataset.id;
+    
+    if (currentDeleteElement.classList.contains('canvas-section')) {
+      canvasData.sections = canvasData.sections.filter(s => s.id !== elementId);
+    } else {
+      removeFromParentContent(currentDeleteElement);
+    }
+    
+    currentDeleteElement.remove();
+    saveCanvasData();
+    clearSelection();
+    
+    if (canvasEl.children.length === 1) {
+      canvasPlaceholder.style.display = 'flex';
+    }
+    
+    closeDeleteModal();
+  } catch (error) {
+    console.error('Error deleting element:', error);
+    alert('Failed to delete element. Please try again.');
+  }
+}
+
+function closeDeleteModal() {
+  deleteModal.classList.add('hidden');
+  currentDeleteElement = null;
+}
+
+function removeFromParentContent(element) {
+  const elementId = element.dataset.id;
+  const parentContentEl = element.parentElement;
+  
+  if (parentContentEl.classList.contains('section-content')) {
+    const sectionEl = parentContentEl.closest('.canvas-section');
+    const sectionId = sectionEl.dataset.id;
+    const section = canvasData.sections.find(s => s.id === sectionId);
+    if (section) {
+      section.content = section.content.filter(item => item.id !== elementId);
+    }
+    
+    if (parentContentEl.children.length === 1) {
+      parentContentEl.classList.add('empty');
+    }
+  }
+}
+
+// Context Menu
+function handleContextMenu(e) {
+  const target = e.target.closest('.canvas-section, .content-item');
+  if (target) {
+    e.preventDefault();
+    contextMenuTarget = target;
+    
+    contextMenu.style.left = e.clientX + 'px';
+    contextMenu.style.top = e.clientY + 'px';
+    contextMenu.classList.remove('hidden');
+  }
+}
+
+function hideContextMenu() {
+  contextMenu.classList.add('hidden');
+  contextMenuTarget = null;
+}
+
+function editSelectedItem() {
+  if (contextMenuTarget) {
+    selectElement(contextMenuTarget);
+  }
+  hideContextMenu();
+}
+
+function deleteSelectedItem() {
+  if (contextMenuTarget) {
+    showDeleteConfirmation(contextMenuTarget);
+  }
+  hideContextMenu();
+}
+
+// Modal Handlers
+function closeModal() {
+  editModal.classList.add('hidden');
+}
+
+function saveItemEdit() {
+  closeModal();
 }
 
 // Toolbar Functions
@@ -1440,7 +1193,7 @@ function clearCanvas() {
   }
 }
 
-// Enhanced PDF Export Function - Text Only with Proper Indentation
+// PDF Export Function
 function exportCanvasToPDF() {
   if (canvasData.sections.length === 0) {
     alert('Please add some content to export.');
@@ -1453,43 +1206,36 @@ function exportCanvasToPDF() {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
     
-    // PDF Configuration
     const margin = 20;
     const pageWidth = doc.internal.pageSize.getWidth();
     const pageHeight = doc.internal.pageSize.getHeight();
     let yPosition = margin;
     
-    // Title
     doc.setFontSize(20);
     doc.setFont(undefined, 'bold');
     doc.text('LMS Course Wireframe', margin, yPosition);
     yPosition += 15;
     
-    // Date
     doc.setFontSize(10);
     doc.setFont(undefined, 'normal');
     doc.text(`Generated on: ${new Date().toLocaleDateString()}`, margin, yPosition);
     yPosition += 20;
     
-    // Process each section
     canvasData.sections.forEach((section) => {
-      // Check if we need a new page
       if (yPosition > pageHeight - 60) {
         doc.addPage();
         yPosition = margin;
       }
       
-      // Section Header (No indentation)
       doc.setFontSize(16);
       doc.setFont(undefined, 'bold');
       doc.text(`${section.name}`, margin, yPosition);
       yPosition += 8;
       
-      // Section properties with single indentation
       if (section.summaryForStudents) {
         doc.setFontSize(10);
         doc.setFont(undefined, 'normal');
-        const summaryLines = doc.splitTextToSize(`    Summary: ${section.summaryForStudents}`, pageWidth - margin * 2);
+        const summaryLines = doc.splitTextToSize(`        Summary: ${section.summaryForStudents}`, pageWidth - margin * 2);
         doc.text(summaryLines, margin, yPosition);
         yPosition += 6 * summaryLines.length;
       }
@@ -1497,20 +1243,18 @@ function exportCanvasToPDF() {
       if (section.notesForDeveloper) {
         doc.setFontSize(10);
         doc.setFont(undefined, 'italic');
-        const notesLines = doc.splitTextToSize(`    Developer Notes: ${section.notesForDeveloper}`, pageWidth - margin * 2);
+        const notesLines = doc.splitTextToSize(`        Developer Notes: ${section.notesForDeveloper}`, pageWidth - margin * 2);
         doc.text(notesLines, margin, yPosition);
         yPosition += 6 * notesLines.length;
       }
       
       yPosition += 5;
       
-      // Section border
       doc.setDrawColor(33, 128, 141);
       doc.setLineWidth(0.5);
       doc.line(margin, yPosition, pageWidth - margin, yPosition);
       yPosition += 10;
       
-      // Process section content with proper indentation
       if (section.content && section.content.length > 0) {
         section.content.forEach((item) => {
           if (yPosition > pageHeight - 30) {
@@ -1518,19 +1262,18 @@ function exportCanvasToPDF() {
             yPosition = margin;
           }
           
-          yPosition = renderContentItemWithIndentation(doc, item, margin, yPosition, pageHeight, 1);
+          yPosition = renderContentItemWithIndentation(doc, item, margin, yPosition, pageHeight, pageWidth, 1);
         });
       } else {
         doc.setFontSize(10);
         doc.setFont(undefined, 'italic');
-        doc.text('    (No content)', margin, yPosition);
+        doc.text('        (No content)', margin, yPosition);
         yPosition += 8;
       }
       
       yPosition += 15;
     });
     
-    // Footer on each page
     const totalPages = doc.internal.getNumberOfPages();
     for (let i = 1; i <= totalPages; i++) {
       doc.setPage(i);
@@ -1540,13 +1283,10 @@ function exportCanvasToPDF() {
       doc.text('Generated by LMS Wireframe Builder', margin, pageHeight - 10);
     }
     
-    // Generate filename
     const timestamp = new Date().toISOString().split('T')[0];
     const filename = `lms-wireframe-${timestamp}.pdf`;
     
-    // Save the PDF
     doc.save(filename);
-    
     document.body.classList.remove('exporting');
     
   } catch (error) {
@@ -1556,77 +1296,36 @@ function exportCanvasToPDF() {
   }
 }
 
-function renderContentItemWithIndentation(doc, item, baseMargin, y, pageHeight, indentLevel) {
+function renderContentItemWithIndentation(doc, item, baseMargin, y, pageHeight, pageWidth, indentLevel) {
   let yPosition = y;
-  const indent = '    '.repeat(indentLevel);
+  const indentSize = 8;
+  const currentIndent = baseMargin + (indentLevel * indentSize);
   
-  if (item.type === 'subsection') {
-    // Subsection Header with single indentation
-    doc.setFontSize(14);
-    doc.setFont(undefined, 'bold');
-    doc.text(`${indent}${item.name}`, baseMargin, yPosition);
-    yPosition += 8;
-    
-    // Subsection properties with double indentation
-    const subIndent = '    '.repeat(indentLevel + 1);
-    if (item.summaryForStudents) {
-      doc.setFontSize(9);
-      doc.setFont(undefined, 'normal');
-      const summaryLines = doc.splitTextToSize(`${subIndent}Summary: ${item.summaryForStudents}`, 180 - baseMargin);
-      doc.text(summaryLines, baseMargin, yPosition);
-      yPosition += 6 * summaryLines.length;
-    }
-    
-    if (item.notesForDeveloper) {
-      doc.setFontSize(9);
-      doc.setFont(undefined, 'italic');
-      const notesLines = doc.splitTextToSize(`${subIndent}Developer Notes: ${item.notesForDeveloper}`, 180 - baseMargin);
-      doc.text(notesLines, baseMargin, yPosition);
-      yPosition += 6 * notesLines.length;
-    }
-    
-    yPosition += 5;
-    
-    // Subsection content with double indentation
-    if (item.content && item.content.length > 0) {
-      item.content.forEach((subItem) => {
-        if (yPosition > pageHeight - 30) {
-          doc.addPage();
-          yPosition = 20;
-        }
-        yPosition = renderContentItemWithIndentation(doc, subItem, baseMargin, yPosition, pageHeight, indentLevel + 1);
-      });
-    }
-    
-  } else if (item.type === 'design-element') {
-    // Design Element with proper indentation
+  if (item.type === 'design-element') {
     doc.setFontSize(12);
     doc.setFont(undefined, 'bold');
-    doc.text(`${indent}--- ${item.name.toUpperCase()} ---`, baseMargin, yPosition);
+    doc.text(`--- ${item.name.toUpperCase()} ---`, currentIndent, yPosition);
     yPosition += 10;
-    
   } else {
-    // Resource or Activity with proper indentation
     const typeLabel = item.type === 'resource' ? 'RESOURCE' : 'ACTIVITY';
     doc.setFontSize(11);
     doc.setFont(undefined, 'bold');
-    doc.text(`${indent}- ${item.name} (${typeLabel})`, baseMargin, yPosition);
+    doc.text(`- ${item.name} (${typeLabel})`, currentIndent, yPosition);
     yPosition += 6;
     
-    // Content properties with additional indentation
-    const contentIndent = '    '.repeat(indentLevel + 1);
+    const contentIndent = baseMargin + ((indentLevel + 1) * indentSize);
     if (item.description) {
       doc.setFontSize(9);
       doc.setFont(undefined, 'normal');
-      const descLines = doc.splitTextToSize(`${contentIndent}Description: ${item.description}`, 180 - baseMargin);
-      doc.text(descLines, baseMargin, yPosition);
+      const descLines = doc.splitTextToSize(`Description: ${item.description}`, pageWidth - contentIndent - baseMargin);
+      doc.text(descLines, contentIndent, yPosition);
       yPosition += 6 * descLines.length;
     }
     
     if (item.approxLearningTime) {
       doc.setFontSize(9);
       doc.setFont(undefined, 'normal');
-      doc.text(`${contentIndent}Learning Time: ${item.approxLearningTime}`, baseMargin, yPosition);
+      doc.text(`Learning Time: ${item.approxLearningTime}`, contentIndent, yPosition);
       yPosition += 6;
     }
     
@@ -1650,30 +1349,8 @@ function addCustomSection() {
     preloadedContent: []
   };
   
-  createCanvasSection(itemData, canvasEl, 'inside');
+  createCanvasSection(itemData);
   canvasPlaceholder.style.display = 'none';
-}
-
-function addCustomSubsection() {
-  const sections = document.querySelectorAll('.canvas-section:not(.special-section)');
-  if (sections.length === 0) {
-    alert('Please create a regular section first before adding a subsection.');
-    return;
-  }
-  
-  const name = prompt('Enter subsection name:');
-  if (!name) return;
-  
-  const itemData = {
-    id: generateId(),
-    name: name,
-    icon: '📋',
-    type: 'subsection'
-  };
-  
-  // Add to first available section
-  const sectionContent = sections[0].querySelector('.section-content');
-  createContentInContainer(itemData, sectionContent, 'inside');
 }
 
 function addCustomResource() {
@@ -1693,9 +1370,7 @@ function addCustomResource() {
     type: 'resource'
   };
   
-  // Add to first available section
-  const sectionContent = sections[0].querySelector('.section-content');
-  createContentInContainer(itemData, sectionContent, 'inside');
+  createContentInSection(itemData, sections[0]);
 }
 
 function addCustomActivity() {
@@ -1715,9 +1390,7 @@ function addCustomActivity() {
     type: 'activity'
   };
   
-  // Add to first available section
-  const sectionContent = sections[0].querySelector('.section-content');
-  createContentInContainer(itemData, sectionContent, 'inside');
+  createContentInSection(itemData, sections[0]);
 }
 
 // Utility Functions
@@ -1726,19 +1399,23 @@ function generateId() {
 }
 
 function saveCanvasData() {
-  localStorage.setItem('lms_wireframe_canvas', JSON.stringify(canvasData));
+  try {
+    const dataString = JSON.stringify(canvasData);
+    window.canvasDataBackup = dataString;
+  } catch (e) {
+    console.warn('Could not save canvas data:', e);
+  }
 }
 
 function loadCanvasData() {
-  const saved = localStorage.getItem('lms_wireframe_canvas');
-  if (saved) {
-    try {
-      canvasData = JSON.parse(saved);
+  try {
+    if (window.canvasDataBackup) {
+      canvasData = JSON.parse(window.canvasDataBackup);
       renderCanvas();
-    } catch (e) {
-      console.error('Error loading saved data:', e);
-      canvasData = { sections: [], customCounter: 0 };
     }
+  } catch (e) {
+    console.warn('Could not load saved data:', e);
+    canvasData = { sections: [], customCounter: 0 };
   }
 }
 
@@ -1765,8 +1442,9 @@ function renderCanvas() {
           <span class="section-name">${sectionData.name}</span>
         </div>
         <div class="section-controls">
-          <button class="control-btn" title="Move">↕️</button>
-          <button class="control-btn" title="Delete">🗑️</button>
+          <button class="control-btn" data-action="edit">✏️</button>
+          <button class="control-btn" data-action="move">↕️</button>
+          <button class="control-btn" data-action="delete">🗑️</button>
         </div>
       </div>
       <div class="section-content ${!sectionData.content || sectionData.content.length === 0 ? 'empty' : ''}"></div>
@@ -1776,23 +1454,7 @@ function renderCanvas() {
     
     if (sectionData.content && sectionData.content.length > 0) {
       sectionData.content.forEach(contentData => {
-        let contentEl;
-        
-        if (contentData.type === 'subsection') {
-          contentEl = createSubsectionElement(contentData);
-          const subsectionContent = contentEl.querySelector('.subsection-content');
-          
-          if (contentData.content && contentData.content.length > 0) {
-            contentData.content.forEach(subContentData => {
-              const subContentEl = createContentElement(subContentData);
-              subsectionContent.appendChild(subContentEl);
-            });
-            subsectionContent.classList.remove('empty');
-          }
-        } else {
-          contentEl = createContentElement(contentData);
-        }
-        
+        const contentEl = createContentElement(contentData);
         sectionContent.appendChild(contentEl);
       });
     }

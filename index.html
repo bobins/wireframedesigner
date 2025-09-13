@@ -15,7 +15,7 @@
                 <h1>LMS Wireframe Builder</h1>
             </div>
             <div class="toolbar-right">
-                <button class="btn btn--outline btn--sm" id="help-btn">❓ Starter Guide</button>
+                <button class="btn btn--outline btn--sm" id="starter-guide-btn">❓ Starter Guide</button>
                 <button class="btn btn--secondary btn--sm" id="save-btn">💾 Save</button>
                 <button class="btn btn--outline btn--sm" id="clear-btn">🗑️ Clear</button>
                 <button class="btn btn--primary btn--sm" id="export-btn">📄 Export PDF</button>
@@ -27,69 +27,43 @@
             <aside class="sidebar">
                 <!-- Custom Elements Section -->
                 <div class="sidebar-section">
-                    <div class="sidebar-header" data-category="custom-elements">
-                        <span class="sidebar-toggle">▼</span>
-                        <h3>Custom Elements</h3>
-                    </div>
-                    <div class="sidebar-content" id="custom-elements-content">
-                        <div class="custom-controls">
-                            <button class="btn btn--secondary btn--sm btn--full-width" id="add-section-btn">+ Add Section</button>
-                            <button class="btn btn--secondary btn--sm btn--full-width" id="add-subsection-btn">+ Add Subsection</button>
-                            <button class="btn btn--outline btn--sm btn--full-width" id="add-resource-btn">+ Add Resource</button>
-                            <button class="btn btn--outline btn--sm btn--full-width" id="add-activity-btn">+ Add Activity</button>
-                        </div>
+                    <h3>Custom Elements</h3>
+                    <div class="custom-controls">
+                        <button class="btn btn--secondary btn--sm btn--full-width" id="add-section-btn">+ Add Section</button>
+                        <button class="btn btn--outline btn--sm btn--full-width" id="add-resource-btn">+ Add Resource</button>
+                        <button class="btn btn--outline btn--sm btn--full-width" id="add-activity-btn">+ Add Activity</button>
                     </div>
                 </div>
 
                 <!-- Section Templates -->
                 <div class="sidebar-section">
-                    <div class="sidebar-header" data-category="section-templates">
-                        <span class="sidebar-toggle">▼</span>
-                        <h3>Section Templates</h3>
-                    </div>
-                    <div class="sidebar-content" id="section-templates-content">
-                        <div class="component-list" id="section-templates-list">
-                            <!-- Section templates will be populated here -->
-                        </div>
+                    <h3>Section Templates</h3>
+                    <div class="component-list" id="section-templates-list">
+                        <!-- Section templates will be populated here -->
                     </div>
                 </div>
                 
                 <!-- Resources Section -->
                 <div class="sidebar-section">
-                    <div class="sidebar-header" data-category="resources">
-                        <span class="sidebar-toggle">▼</span>
-                        <h3>Resources</h3>
-                    </div>
-                    <div class="sidebar-content" id="resources-content">
-                        <div class="component-list" id="resources-list">
-                            <!-- Resources will be populated here -->
-                        </div>
+                    <h3>Resources</h3>
+                    <div class="component-list" id="resources-list">
+                        <!-- Resources will be populated here -->
                     </div>
                 </div>
 
                 <!-- Activities Section -->
                 <div class="sidebar-section">
-                    <div class="sidebar-header" data-category="activities">
-                        <span class="sidebar-toggle">▼</span>
-                        <h3>Activities</h3>
-                    </div>
-                    <div class="sidebar-content" id="activities-content">
-                        <div class="component-list" id="activities-list">
-                            <!-- Activities will be populated here -->
-                        </div>
+                    <h3>Activities</h3>
+                    <div class="component-list" id="activities-list">
+                        <!-- Activities will be populated here -->
                     </div>
                 </div>
 
                 <!-- Design Elements Section -->
                 <div class="sidebar-section">
-                    <div class="sidebar-header" data-category="design-elements">
-                        <span class="sidebar-toggle">▼</span>
-                        <h3>Design Elements</h3>
-                    </div>
-                    <div class="sidebar-content" id="design-elements-content">
-                        <div class="component-list" id="design-elements-list">
-                            <!-- Design elements will be populated here -->
-                        </div>
+                    <h3>Design Elements</h3>
+                    <div class="component-list" id="design-elements-list">
+                        <!-- Design elements will be populated here -->
                     </div>
                 </div>
             </aside>
@@ -101,7 +75,7 @@
                         <div class="placeholder-content">
                             <div class="placeholder-icon">🎨</div>
                             <h3>Start Building Your Course Wireframe</h3>
-                            <p>Drag sections from the sidebar to begin. Add subsections to sections, then add resources, activities, and design elements to sections and subsections.</p>
+                            <p>Drag sections from the sidebar to begin. Add resources, activities, and design elements to sections.</p>
                         </div>
                     </div>
                 </div>
@@ -117,72 +91,33 @@
         </div>
 
         <!-- Footer -->
-        <footer class="app-footer">
+        <footer class="footer">
             <p>Designed and developed by Robert Sydenham for Murdoch University using Perplexity Labs (2025).</p>
         </footer>
     </div>
 
     <!-- Context Menu -->
     <div class="context-menu hidden" id="context-menu">
-        <div class="context-menu-item" id="move-item">↕️ Move</div>
+        <div class="context-menu-item" id="edit-item">✏️ Edit</div>
         <div class="context-menu-item" id="delete-item">🗑️ Delete</div>
     </div>
 
-    <!-- Starter Guide Modal -->
-    <div class="modal" id="starter-guide-modal">
-        <div class="modal-content starter-guide-content">
+    <!-- Modal for editing items -->
+    <div class="modal hidden" id="edit-modal">
+        <div class="modal-content">
             <div class="modal-header">
-                <h3>🚀 Starter Guide</h3>
-                <button class="modal-close" id="starter-guide-close">&times;</button>
+                <h3>Edit Item</h3>
+                <button class="modal-close" id="modal-close">&times;</button>
             </div>
             <div class="modal-body">
-                <div class="guide-section">
-                    <h4>Welcome to LMS Wireframe Builder!</h4>
-                    <p>This tool helps you design course structures with a hierarchical approach.</p>
-                </div>
-                
-                <div class="guide-section">
-                    <h4>🏗️ Getting Started</h4>
-                    <ul>
-                        <li><strong>Drag & Drop:</strong> Drag items from the sidebar to the canvas</li>
-                        <li><strong>Templates:</strong> Use section templates for common course structures</li>
-                        <li><strong>Hierarchy:</strong> Sections → Subsections → Resources/Activities/Design Elements</li>
-                    </ul>
-                </div>
-
-                <div class="guide-section">
-                    <h4>🎯 Key Features</h4>
-                    <ul>
-                        <li><strong>Move Button (↕️):</strong> Click to precisely position content anywhere</li>
-                        <li><strong>Bidirectional Drag:</strong> Drag content up or down smoothly</li>
-                        <li><strong>Properties Panel:</strong> Click any item to edit its properties</li>
-                        <li><strong>PDF Export:</strong> Generate a structured document of your wireframe</li>
-                    </ul>
-                </div>
-
-                <div class="guide-section">
-                    <h4>📋 Content Types</h4>
-                    <ul>
-                        <li><strong>Sections:</strong> Main course areas (Home, Assessments, Topics)</li>
-                        <li><strong>Subsections:</strong> Topic divisions within sections</li>
-                        <li><strong>Resources:</strong> Content for students (readings, videos, links)</li>
-                        <li><strong>Activities:</strong> Interactive elements (forums, quizzes, assignments)</li>
-                        <li><strong>Design Elements:</strong> Pedagogical markers (Pre-Class, In-Class, etc.)</li>
-                    </ul>
-                </div>
-
-                <div class="guide-section">
-                    <h4>💡 Tips</h4>
-                    <ul>
-                        <li>Start with section templates for quick setup</li>
-                        <li>Use the move button for precise positioning</li>
-                        <li>Fill in properties for better documentation</li>
-                        <li>Save regularly to preserve your work</li>
-                    </ul>
+                <div class="form-group">
+                    <label class="form-label" for="item-name">Item Name</label>
+                    <input type="text" class="form-control" id="item-name" placeholder="Enter item name">
                 </div>
             </div>
             <div class="modal-footer">
-                <button class="btn btn--primary" id="starter-guide-ok">Got it!</button>
+                <button class="btn btn--outline" id="cancel-edit">Cancel</button>
+                <button class="btn btn--primary" id="save-edit">Save Changes</button>
             </div>
         </div>
     </div>
@@ -210,16 +145,74 @@
     <div class="modal hidden" id="delete-modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3>Confirm Delete</h3>
+                <h3>Confirm Deletion</h3>
                 <button class="modal-close" id="delete-modal-close">&times;</button>
             </div>
             <div class="modal-body">
                 <p>Are you sure you want to delete "<span id="delete-item-name"></span>"?</p>
-                <p style="color: var(--color-error); font-size: var(--font-size-sm);">This action cannot be undone.</p>
+                <p><strong>This action cannot be undone.</strong></p>
             </div>
             <div class="modal-footer">
                 <button class="btn btn--outline" id="cancel-delete">Cancel</button>
-                <button class="btn btn--primary" id="confirm-delete" style="background-color: var(--color-error);">Delete</button>
+                <button class="btn btn--primary" id="confirm-delete">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Starter Guide Modal -->
+    <div class="modal hidden" id="starter-guide-modal">
+        <div class="modal-content starter-guide-content">
+            <div class="modal-header">
+                <h3>Starter Guide</h3>
+                <button class="modal-close" id="starter-guide-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="guide-section">
+                    <h4>📋 Getting Started</h4>
+                    <p>Welcome to the LMS Wireframe Builder! This tool helps you create structured course wireframes for Learning Management Systems.</p>
+                </div>
+                
+                <div class="guide-section">
+                    <h4>🎨 Building Your Wireframe</h4>
+                    <ul>
+                        <li><strong>Drag & Drop:</strong> Drag items from the sidebar to the canvas to build your course structure</li>
+                        <li><strong>Section Templates:</strong> Use pre-built sections like Home, Assessments, Topics, and What is on this week</li>
+                        <li><strong>Custom Elements:</strong> Create your own sections, resources, and activities</li>
+                        <li><strong>Hierarchy:</strong> Sections can contain resources, activities, and design elements</li>
+                    </ul>
+                </div>
+                
+                <div class="guide-section">
+                    <h4>⚙️ Managing Content</h4>
+                    <ul>
+                        <li><strong>Edit:</strong> Click the ✏️ button or select items to edit their properties in the right panel</li>
+                        <li><strong>Move:</strong> Use the ↕️ button to reposition items precisely within the hierarchy</li>
+                        <li><strong>Delete:</strong> Click the 🗑️ button to remove unwanted items with confirmation</li>
+                        <li><strong>Properties:</strong> Edit names, descriptions, and notes in the properties panel</li>
+                    </ul>
+                </div>
+                
+                <div class="guide-section">
+                    <h4>💾 Saving & Exporting</h4>
+                    <ul>
+                        <li><strong>Save:</strong> Your work is automatically saved as you build</li>
+                        <li><strong>Export PDF:</strong> Generate a formatted document with proper hierarchy and indentation</li>
+                        <li><strong>Clear:</strong> Start fresh by clearing the entire canvas</li>
+                    </ul>
+                </div>
+                
+                <div class="guide-section">
+                    <h4>🎯 Tips for Success</h4>
+                    <ul>
+                        <li>Start with section templates to get pre-loaded content</li>
+                        <li>Use design elements (Pre-Class, In-Class, Post-Class) to organize learning activities</li>
+                        <li>Add detailed descriptions and learning times in the properties panel</li>
+                        <li>Export regularly to review your course structure</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn--primary" id="close-starter-guide">Got it!</button>
             </div>
         </div>
     </div>
