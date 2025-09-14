@@ -3,21 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LMS Wireframe Builder</title>
+    <title>LMS Wireframe Designer</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
 </head>
 <body>
     <div class="app-container">
         <!-- Top Toolbar -->
         <header class="toolbar">
             <div class="toolbar-left">
-                <h1>LMS Wireframe Builder</h1>
+                <h1>LMS Wireframe Designer</h1>
             </div>
             <div class="toolbar-right">
-                <button class="btn btn--outline btn--sm" id="starter-guide-btn">❓ Starter Guide</button>
+                <button class="btn btn--outline btn--sm" id="help-btn">❓ Starter Guide</button>
                 <button class="btn btn--secondary btn--sm" id="save-btn">💾 Save</button>
                 <button class="btn btn--outline btn--sm" id="clear-btn">🗑️ Clear</button>
+                <button class="btn btn--secondary btn--sm" id="export-png-btn">📷 Export PNG</button>
                 <button class="btn btn--primary btn--sm" id="export-btn">📄 Export PDF</button>
             </div>
         </header>
@@ -89,132 +91,102 @@
                 </div>
             </aside>
         </div>
+    </div>
 
-        <!-- Footer -->
-        <footer class="footer">
-            <p>Designed and developed by Robert Sydenham for Murdoch University using Perplexity Labs (2025).</p>
-        </footer>
+    <!-- Help Modal -->
+    <div class="modal hidden" id="help-modal">
+        <div class="modal-content modal-content--large">
+            <div class="modal-header">
+                <h3>LMS Wireframe Designer - Starter Guide</h3>
+                <button class="modal-close" id="help-modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="help-section">
+                    <h4>🚀 Getting Started</h4>
+                    <p>Welcome to the LMS Wireframe Designer! This tool helps you create structured course layouts for Learning Management Systems.</p>
+                </div>
+                
+                <div class="help-section">
+                    <h4>📐 Content Hierarchy</h4>
+                    <p><strong>Sections</strong> → <strong>Resources/Activities/Design Elements</strong></p>
+                    <ul>
+                        <li><strong>Sections:</strong> Top-level course containers (e.g., Home, Assessments, Topics)</li>
+                        <li><strong>Resources:</strong> Learning materials (readings, videos, links, etc.)</li>
+                        <li><strong>Activities:</strong> Interactive elements (quizzes, forums, assignments, etc.)</li>
+                        <li><strong>Design Elements:</strong> Learning phases (Pre-Class, In-Class, Post-Class, Practical)</li>
+                    </ul>
+                </div>
+
+                <div class="help-section">
+                    <h4>🎯 Section Templates</h4>
+                    <ul>
+                        <li><strong>Home:</strong> Comes with Unit Outline and Announcements resources</li>
+                        <li><strong>Assessments:</strong> Comes with Assignment and Peer Assessment activities</li>
+                        <li><strong>Topic:</strong> Empty section for custom content</li>
+                        <li><strong>What is on this week:</strong> Read-only overview section</li>
+                    </ul>
+                </div>
+
+                <div class="help-section">
+                    <h4>🖱️ How to Use</h4>
+                    <ol>
+                        <li><strong>Drag & Drop:</strong> Drag items from the sidebar to the canvas</li>
+                        <li><strong>Reorder Content:</strong> Drag existing items to reposition them within or between sections</li>
+                        <li><strong>Properties:</strong> Click any item to edit its properties in the right panel</li>
+                        <li><strong>Save Changes:</strong> Click "Save Changes" in properties to update the canvas</li>
+                        <li><strong>Export:</strong> Generate a PDF or PNG with your complete wireframe structure</li>
+                    </ol>
+                </div>
+
+                <div class="help-section">
+                    <h4>💡 Best Practices</h4>
+                    <ul>
+                        <li>Start with section templates for common course structures</li>
+                        <li>Use design elements to indicate learning phases</li>
+                        <li>Group related resources and activities in sections</li>
+                        <li>Add descriptive summaries for students and developer notes</li>
+                        <li>Export regularly to save your progress</li>
+                    </ul>
+                </div>
+
+                <div class="help-section">
+                    <h4>⚙️ Application Features</h4>
+                    <ul>
+                        <li><strong>Visual Selection:</strong> Selected items show a blue glow</li>
+                        <li><strong>Drag Validation:</strong> Invalid drops are highlighted in red</li>
+                        <li><strong>Auto-save:</strong> Your work is automatically saved to browser storage</li>
+                        <li><strong>Hierarchical Export:</strong> PDF maintains proper indentation and structure</li>
+                        <li><strong>PNG Export:</strong> High-quality image export for presentations</li>
+                        <li><strong>Responsive Design:</strong> Works on desktop and tablet devices</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn--primary" id="help-close-btn">Got it!</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirmation Modal -->
+    <div class="modal hidden" id="confirm-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Confirm Action</h3>
+                <button class="modal-close" id="confirm-modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p id="confirm-message">Are you sure you want to proceed?</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn--outline" id="confirm-cancel">Cancel</button>
+                <button class="btn btn--primary" id="confirm-proceed">Confirm</button>
+            </div>
+        </div>
     </div>
 
     <!-- Context Menu -->
     <div class="context-menu hidden" id="context-menu">
-        <div class="context-menu-item" id="edit-item">✏️ Edit</div>
         <div class="context-menu-item" id="delete-item">🗑️ Delete</div>
-    </div>
-
-    <!-- Modal for editing items -->
-    <div class="modal hidden" id="edit-modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>Edit Item</h3>
-                <button class="modal-close" id="modal-close">&times;</button>
-            </div>
-            <div class="modal-body">
-                <div class="form-group">
-                    <label class="form-label" for="item-name">Item Name</label>
-                    <input type="text" class="form-control" id="item-name" placeholder="Enter item name">
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn--outline" id="cancel-edit">Cancel</button>
-                <button class="btn btn--primary" id="save-edit">Save Changes</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Move Menu Modal -->
-    <div class="modal hidden" id="move-modal">
-        <div class="modal-content move-modal-content">
-            <div class="modal-header">
-                <h3>Move Content</h3>
-                <button class="modal-close" id="move-modal-close">&times;</button>
-            </div>
-            <div class="modal-body">
-                <p class="move-instructions">Select where to move "<span id="move-item-name"></span>":</p>
-                <div class="move-list" id="move-list">
-                    <!-- Move options will be populated here -->
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn--outline" id="cancel-move">Cancel</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Delete Confirmation Modal -->
-    <div class="modal hidden" id="delete-modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>Confirm Deletion</h3>
-                <button class="modal-close" id="delete-modal-close">&times;</button>
-            </div>
-            <div class="modal-body">
-                <p>Are you sure you want to delete "<span id="delete-item-name"></span>"?</p>
-                <p><strong>This action cannot be undone.</strong></p>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn--outline" id="cancel-delete">Cancel</button>
-                <button class="btn btn--primary" id="confirm-delete">Delete</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Starter Guide Modal -->
-    <div class="modal hidden" id="starter-guide-modal">
-        <div class="modal-content starter-guide-content">
-            <div class="modal-header">
-                <h3>Starter Guide</h3>
-                <button class="modal-close" id="starter-guide-close">&times;</button>
-            </div>
-            <div class="modal-body">
-                <div class="guide-section">
-                    <h4>📋 Getting Started</h4>
-                    <p>Welcome to the LMS Wireframe Builder! This tool helps you create structured course wireframes for Learning Management Systems.</p>
-                </div>
-                
-                <div class="guide-section">
-                    <h4>🎨 Building Your Wireframe</h4>
-                    <ul>
-                        <li><strong>Drag & Drop:</strong> Drag items from the sidebar to the canvas to build your course structure</li>
-                        <li><strong>Section Templates:</strong> Use pre-built sections like Home, Assessments, Topics, and What is on this week</li>
-                        <li><strong>Custom Elements:</strong> Create your own sections, resources, and activities</li>
-                        <li><strong>Hierarchy:</strong> Sections can contain resources, activities, and design elements</li>
-                    </ul>
-                </div>
-                
-                <div class="guide-section">
-                    <h4>⚙️ Managing Content</h4>
-                    <ul>
-                        <li><strong>Edit:</strong> Click the ✏️ button or select items to edit their properties in the right panel</li>
-                        <li><strong>Move:</strong> Use the ↕️ button to reposition items precisely within the hierarchy</li>
-                        <li><strong>Delete:</strong> Click the 🗑️ button to remove unwanted items with confirmation</li>
-                        <li><strong>Properties:</strong> Edit names, descriptions, and notes in the properties panel</li>
-                    </ul>
-                </div>
-                
-                <div class="guide-section">
-                    <h4>💾 Saving & Exporting</h4>
-                    <ul>
-                        <li><strong>Save:</strong> Your work is automatically saved as you build</li>
-                        <li><strong>Export PDF:</strong> Generate a formatted document with proper hierarchy and indentation</li>
-                        <li><strong>Clear:</strong> Start fresh by clearing the entire canvas</li>
-                    </ul>
-                </div>
-                
-                <div class="guide-section">
-                    <h4>🎯 Tips for Success</h4>
-                    <ul>
-                        <li>Start with section templates to get pre-loaded content</li>
-                        <li>Use design elements (Pre-Class, In-Class, Post-Class) to organize learning activities</li>
-                        <li>Add detailed descriptions and learning times in the properties panel</li>
-                        <li>Export regularly to review your course structure</li>
-                    </ul>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn--primary" id="close-starter-guide">Got it!</button>
-            </div>
-        </div>
     </div>
 
     <!-- Drop Zone Indicator -->
@@ -227,6 +199,11 @@
 
     <!-- Drag Preview -->
     <div class="drag-preview hidden" id="drag-preview"></div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <p>Designed and developed by Robert Sydenham for Murdoch University using Perplexity Labs (2025).</p>
+    </footer>
 
     <script src="app.js"></script>
 </body>
