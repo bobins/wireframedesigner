@@ -776,7 +776,7 @@ select.form-control {
 
 /* Sidebar Styles */
 .sidebar {
-  width: 320px;
+  width: 300px;
   background-color: var(--color-surface);
   border-right: 1px solid var(--color-border);
   padding: var(--space-16);
@@ -888,6 +888,7 @@ select.form-control {
   overflow-y: auto;
   background-color: var(--color-background);
   position: relative;
+  min-height: 500px;
 }
 
 .canvas-placeholder {
@@ -918,7 +919,7 @@ select.form-control {
   margin: 0 auto;
 }
 
-/* Canvas Items - Hierarchical Structure */
+/* Enhanced Canvas Items - Improved Section Drag & Drop */
 .canvas-section {
   background-color: var(--color-surface);
   border: 3px solid var(--color-primary);
@@ -927,6 +928,7 @@ select.form-control {
   box-shadow: var(--shadow-md);
   transition: all var(--duration-normal) var(--ease-standard);
   cursor: pointer;
+  position: relative;
 }
 
 .canvas-section.selected {
@@ -934,10 +936,19 @@ select.form-control {
   box-shadow: 0 0 0 4px rgba(var(--color-teal-500-rgb), 0.3), var(--shadow-md);
 }
 
+/* Improved section drag states */
+.canvas-section.dragging {
+  opacity: 0.6;
+  transform: rotate(1deg) scale(0.98);
+  z-index: 1000;
+  box-shadow: var(--shadow-lg);
+}
+
 .canvas-section.drag-over {
   border-color: var(--color-primary-hover);
   background-color: var(--color-bg-3);
-  transform: scale(1.01);
+  transform: scale(1.02);
+  box-shadow: 0 0 0 4px rgba(var(--color-teal-500-rgb), 0.4), var(--shadow-lg);
 }
 
 .canvas-section.special-section {
@@ -958,6 +969,7 @@ select.form-control {
   box-shadow: var(--shadow-sm);
   position: relative;
   cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-standard);
 }
 
 .canvas-subsection.selected {
@@ -965,9 +977,16 @@ select.form-control {
   box-shadow: 0 0 0 3px rgba(var(--color-orange-500-rgb), 0.3), var(--shadow-sm);
 }
 
+.canvas-subsection.dragging {
+  opacity: 0.6;
+  transform: rotate(1deg) scale(0.98);
+  z-index: 999;
+}
+
 .canvas-subsection.drag-over {
   border-color: var(--color-warning);
   background-color: var(--color-bg-4);
+  transform: scale(1.02);
 }
 
 .section-header, .subsection-header {
@@ -976,6 +995,11 @@ select.form-control {
   justify-content: space-between;
   padding: var(--space-12) var(--space-16);
   border-bottom: 1px solid var(--color-border);
+  cursor: grab;
+}
+
+.section-header:active, .subsection-header:active {
+  cursor: grabbing;
 }
 
 .section-header {
@@ -1033,6 +1057,7 @@ select.form-control {
 .section-content, .subsection-content {
   padding: var(--space-16);
   min-height: 60px;
+  position: relative;
 }
 
 .section-content.empty::after {
@@ -1074,6 +1099,16 @@ select.form-control {
   cursor: grab;
   transition: all var(--duration-fast) var(--ease-standard);
   position: relative;
+}
+
+.content-item:active {
+  cursor: grabbing;
+}
+
+.content-item.dragging {
+  opacity: 0.6;
+  transform: rotate(1deg) scale(0.98);
+  z-index: 998;
 }
 
 .content-item[data-type="resource"] {
@@ -1133,15 +1168,16 @@ select.form-control {
   color: var(--color-primary);
 }
 
-/* Properties Panel */
+/* FIXED Properties Panel - Ensure it's always visible */
 .properties-panel {
-  width: 320px;
+  width: 300px;
   background-color: var(--color-surface);
   border-left: 1px solid var(--color-border);
   padding: var(--space-16);
   overflow-y: auto;
   flex-shrink: 0;
   transition: all var(--duration-normal) var(--ease-standard);
+  display: block !important; /* Force visibility */
 }
 
 .properties-panel h3 {
@@ -1159,6 +1195,10 @@ select.form-control {
   text-align: center;
   font-style: italic;
   color: var(--color-text-secondary);
+  padding: var(--space-16);
+  background-color: var(--color-bg-1);
+  border-radius: var(--radius-base);
+  border: 1px solid var(--color-border);
 }
 
 .properties-form .form-group {
@@ -1182,15 +1222,18 @@ select.form-control {
   text-align: center;
 }
 
-/* Drag and Drop States */
+/* Enhanced Drag and Drop States */
 .dragging {
-  opacity: 0.5;
-  transform: rotate(2deg);
+  opacity: 0.6 !important;
+  transform: rotate(1deg) scale(0.98) !important;
+  z-index: 1000 !important;
+  box-shadow: var(--shadow-lg) !important;
 }
 
 .drag-over {
   background-color: var(--color-bg-3) !important;
   border-color: var(--color-primary) !important;
+  transform: scale(1.02) !important;
 }
 
 .drop-zone-indicator {
@@ -1202,6 +1245,7 @@ select.form-control {
   border-radius: var(--radius-base);
   box-shadow: var(--shadow-lg);
   pointer-events: none;
+  transition: all var(--duration-fast) var(--ease-standard);
 }
 
 .drop-zone-content {
@@ -1217,20 +1261,24 @@ select.form-control {
   border-color: var(--color-error) !important;
 }
 
-/* Drag Preview */
+/* Improved Drag Preview */
 .drag-preview {
   position: fixed;
-  z-index: 1000;
+  z-index: 1001;
   pointer-events: none;
   background-color: var(--color-surface);
-  border: 1px solid var(--color-primary);
+  border: 2px solid var(--color-primary);
   border-radius: var(--radius-base);
   padding: var(--space-8) var(--space-12);
   box-shadow: var(--shadow-lg);
   transform: rotate(-2deg);
-  opacity: 0.9;
+  opacity: 0.95;
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-medium);
+  max-width: 200px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* Context Menu */
@@ -1391,18 +1439,71 @@ select.form-control {
   text-decoration: underline;
 }
 
-/* Drop insertion indicators */
+/* Enhanced Drop insertion indicators */
 .drop-indicator {
-  height: 3px;
-  background-color: var(--color-primary);
+  height: 4px;
+  background: linear-gradient(90deg, var(--color-primary), var(--color-primary-hover));
   border-radius: var(--radius-full);
   margin: var(--space-4) 0;
   opacity: 0;
-  transition: opacity var(--duration-fast) var(--ease-standard);
+  transition: all var(--duration-fast) var(--ease-standard);
+  position: relative;
+}
+
+.drop-indicator::before {
+  content: '';
+  position: absolute;
+  left: -6px;
+  top: -2px;
+  width: 8px;
+  height: 8px;
+  background-color: var(--color-primary);
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px var(--color-surface);
+}
+
+.drop-indicator::after {
+  content: '';
+  position: absolute;
+  right: -6px;
+  top: -2px;
+  width: 8px;
+  height: 8px;
+  background-color: var(--color-primary);
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px var(--color-surface);
 }
 
 .drop-indicator.active {
   opacity: 1;
+}
+
+/* Section drop indicators */
+.section-drop-indicator {
+  height: 6px;
+  background: linear-gradient(90deg, var(--color-primary), var(--color-primary-hover));
+  border-radius: var(--radius-full);
+  margin: var(--space-8) 0;
+  opacity: 0;
+  transition: all var(--duration-fast) var(--ease-standard);
+  position: relative;
+  box-shadow: 0 0 0 2px rgba(var(--color-teal-500-rgb), 0.3);
+}
+
+.section-drop-indicator.active {
+  opacity: 1;
+  animation: pulse 1s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { 
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% { 
+    transform: scale(1.02);
+    opacity: 0.8;
+  }
 }
 
 /* Sortable placeholder */
@@ -1412,10 +1513,11 @@ select.form-control {
   border-radius: var(--radius-base);
   margin: var(--space-8) 0;
   height: 40px;
-  opacity: 0.5;
+  opacity: 0.7;
+  transition: all var(--duration-fast) var(--ease-standard);
 }
 
-/* Animations */
+/* Enhanced Animations */
 @keyframes slideInUp {
   from {
     opacity: 0;
@@ -1469,7 +1571,7 @@ select.form-control {
 /* Responsive Design */
 @media (max-width: 1024px) {
   .properties-panel {
-    display: none;
+    width: 280px;
   }
   
   .sidebar {
@@ -1478,6 +1580,10 @@ select.form-control {
 }
 
 @media (max-width: 768px) {
+  .properties-panel {
+    display: none !important;
+  }
+  
   .main-content {
     flex-direction: column;
   }

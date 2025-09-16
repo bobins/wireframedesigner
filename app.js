@@ -97,6 +97,7 @@ let dragOverElement = null;
 let pendingConfirmAction = null;
 let insertionIndex = -1;
 let dropIndicators = [];
+let sectionDropIndicators = [];
 
 // DOM Elements
 const sectionTemplatesListEl = document.getElementById('section-templates-list');
@@ -112,78 +113,97 @@ const propertiesContent = document.getElementById('properties-content');
 const helpModal = document.getElementById('help-modal');
 const confirmModal = document.getElementById('confirm-modal');
 
-// Global function to delete items with confirmation (FIXED)
+// Global function to delete items with confirmation (FIXED AND ENHANCED)
 window.deleteItem = function(element) {
-  const elementName = element.querySelector('.section-name, .subsection-name, .content-name')?.textContent || 'this element';
+  if (!element) {
+    console.error('Delete item called with null element');
+    return;
+  }
   
-  // Show confirmation dialog
-  showConfirmationDialog(`Are you sure you want to delete "${elementName}"? This action cannot be undone.`, function() {
-    const elementId = element.dataset.id;
+  try {
+    const elementName = element.querySelector('.section-name, .subsection-name, .content-name')?.textContent || 'this element';
     
-    if (element.classList.contains('canvas-section')) {
-      // Remove from canvas data
-      canvasData.sections = canvasData.sections.filter(s => s.id !== elementId);
-    } else {
-      // Remove from parent content array
-      removeFromParentContent(element);
-    }
-    
-    // Clear selection if this element was selected
-    if (selectedElement === element) {
-      clearSelection();
-    }
-    
-    // Remove from DOM
-    element.remove();
-    
-    // Save changes
-    saveCanvasData();
-    
-    // Show placeholder if canvas is empty
-    if (canvasEl.children.length === 1) { // Only placeholder remains
-      canvasPlaceholder.style.display = 'flex';
-    }
-  });
+    // Show confirmation dialog
+    showConfirmationDialog(`Are you sure you want to delete "${elementName}"? This action cannot be undone.`, function() {
+      const elementId = element.dataset.id;
+      
+      if (element.classList.contains('canvas-section')) {
+        // Remove from canvas data
+        canvasData.sections = canvasData.sections.filter(s => s.id !== elementId);
+      } else {
+        // Remove from parent content array
+        removeFromParentContent(element);
+      }
+      
+      // Clear selection if this element was selected
+      if (selectedElement === element) {
+        clearSelection();
+      }
+      
+      // Remove from DOM
+      element.remove();
+      
+      // Save changes
+      saveCanvasData();
+      
+      // Show placeholder if canvas is empty
+      const remainingSections = canvasEl.querySelectorAll('.canvas-section');
+      if (remainingSections.length === 0) {
+        canvasPlaceholder.style.display = 'flex';
+      }
+    });
+  } catch (error) {
+    console.error('Error in deleteItem:', error);
+    alert('Error deleting item. Please try again.');
+  }
 };
 
 // Initialize Application
 document.addEventListener('DOMContentLoaded', function() {
-  initializeComponentLibrary();
-  initializeEventListeners();
-  loadCanvasData();
-  dropZoneIndicator = document.getElementById('drop-zone-indicator');
-  
-  // Auto-open Starter Guide on first visit
-  setTimeout(() => {
-    showHelpModal();
-  }, 500);
+  try {
+    initializeComponentLibrary();
+    initializeEventListeners();
+    loadCanvasData();
+    dropZoneIndicator = document.getElementById('drop-zone-indicator');
+    
+    // Auto-open Starter Guide on first visit
+    setTimeout(() => {
+      showHelpModal();
+    }, 500);
+  } catch (error) {
+    console.error('Error initializing application:', error);
+  }
 });
 
 // Initialize Component Library
 function initializeComponentLibrary() {
-  // Populate section templates
-  appData.sectionTemplates.forEach(section => {
-    const sectionEl = createComponentItem(section);
-    sectionTemplatesListEl.appendChild(sectionEl);
-  });
+  try {
+    // Populate section templates
+    appData.sectionTemplates.forEach(section => {
+      const sectionEl = createComponentItem(section);
+      sectionTemplatesListEl.appendChild(sectionEl);
+    });
 
-  // Populate resources
-  appData.resources.forEach(resource => {
-    const resourceEl = createComponentItem(resource);
-    resourcesListEl.appendChild(resourceEl);
-  });
+    // Populate resources
+    appData.resources.forEach(resource => {
+      const resourceEl = createComponentItem(resource);
+      resourcesListEl.appendChild(resourceEl);
+    });
 
-  // Populate activities
-  appData.activities.forEach(activity => {
-    const activityEl = createComponentItem(activity);
-    activitiesListEl.appendChild(activityEl);
-  });
+    // Populate activities
+    appData.activities.forEach(activity => {
+      const activityEl = createComponentItem(activity);
+      activitiesListEl.appendChild(activityEl);
+    });
 
-  // Populate design elements
-  appData.designElements.forEach(element => {
-    const elementEl = createComponentItem(element);
-    designElementsListEl.appendChild(elementEl);
-  });
+    // Populate design elements
+    appData.designElements.forEach(element => {
+      const elementEl = createComponentItem(element);
+      designElementsListEl.appendChild(elementEl);
+    });
+  } catch (error) {
+    console.error('Error initializing component library:', error);
+  }
 }
 
 // Create Component Item Element
@@ -205,69 +225,127 @@ function createComponentItem(item) {
   return div;
 }
 
-// Initialize Event Listeners
+// Initialize Event Listeners - FIXED AND ENHANCED
 function initializeEventListeners() {
-  // Drag and Drop Events
-  document.addEventListener('dragstart', handleDragStart);
-  document.addEventListener('dragover', handleDragOver);
-  document.addEventListener('drop', handleDrop);
-  document.addEventListener('dragend', handleDragEnd);
+  try {
+    // Drag and Drop Events
+    document.addEventListener('dragstart', handleDragStart);
+    document.addEventListener('dragover', handleDragOver);
+    document.addEventListener('drop', handleDrop);
+    document.addEventListener('dragend', handleDragEnd);
 
-  // Toolbar Events
-  document.getElementById('help-btn').addEventListener('click', showHelpModal);
-  document.getElementById('save-btn').addEventListener('click', saveCanvas);
-  document.getElementById('clear-btn').addEventListener('click', showClearConfirmation);
-  document.getElementById('export-btn').addEventListener('click', exportCanvasToPDF);
-  document.getElementById('export-png-btn').addEventListener('click', exportToPNG);
+    // Toolbar Events
+    document.getElementById('help-btn')?.addEventListener('click', showHelpModal);
+    document.getElementById('save-btn')?.addEventListener('click', saveCanvas);
+    document.getElementById('clear-btn')?.addEventListener('click', showClearConfirmation);
+    document.getElementById('export-btn')?.addEventListener('click', exportCanvasToPDF);
+    document.getElementById('export-png-btn')?.addEventListener('click', exportToPNG);
 
-  // Custom Element Creation
-  document.getElementById('add-section-btn').addEventListener('click', addCustomSection);
-  document.getElementById('add-resource-btn').addEventListener('click', addCustomResource);
-  document.getElementById('add-activity-btn').addEventListener('click', addCustomActivity);
+    // Custom Element Creation
+    document.getElementById('add-section-btn')?.addEventListener('click', addCustomSection);
+    document.getElementById('add-resource-btn')?.addEventListener('click', addCustomResource);
+    document.getElementById('add-activity-btn')?.addEventListener('click', addCustomActivity);
 
-  // Context Menu Events
-  document.addEventListener('contextmenu', handleContextMenu);
-  document.addEventListener('click', hideContextMenu);
-  document.getElementById('delete-item').addEventListener('click', deleteSelectedItem);
+    // Context Menu Events
+    document.addEventListener('contextmenu', handleContextMenu);
+    document.addEventListener('click', hideContextMenu);
+    document.getElementById('delete-item')?.addEventListener('click', deleteSelectedItem);
 
-  // Help Modal Events
-  document.getElementById('help-modal-close').addEventListener('click', hideHelpModal);
-  document.getElementById('help-close-btn').addEventListener('click', hideHelpModal);
-
-  // Confirmation Modal Events (FIXED)
-  document.getElementById('confirm-modal-close').addEventListener('click', hideConfirmModal);
-  document.getElementById('confirm-cancel').addEventListener('click', hideConfirmModal);
-  document.getElementById('confirm-proceed').addEventListener('click', function() {
-    proceedWithConfirmedAction();
-  });
-
-  // Click outside modals to close
-  helpModal.addEventListener('click', function(e) {
-    if (e.target === helpModal) {
-      hideHelpModal();
+    // Help Modal Events - FIXED
+    const helpModalCloseBtn = document.getElementById('help-modal-close');
+    const helpCloseBtn = document.getElementById('help-close-btn');
+    
+    if (helpModalCloseBtn) {
+      helpModalCloseBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        hideHelpModal();
+      });
     }
-  });
-
-  confirmModal.addEventListener('click', function(e) {
-    if (e.target === confirmModal) {
-      hideConfirmModal();
+    
+    if (helpCloseBtn) {
+      helpCloseBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        hideHelpModal();
+      });
     }
-  });
 
-  // Canvas click events for selection
-  document.addEventListener('click', function(e) {
-    // Check if click is on a canvas item
-    const target = e.target.closest('.canvas-section, .canvas-subsection, .content-item');
-    if (target) {
-      e.stopPropagation();
-      selectElement(target);
-    } else if (!e.target.closest('.properties-panel, .context-menu, .modal, .control-btn')) {
-      clearSelection();
+    // Confirmation Modal Events - FIXED
+    const confirmModalCloseBtn = document.getElementById('confirm-modal-close');
+    const confirmCancelBtn = document.getElementById('confirm-cancel');
+    const confirmProceedBtn = document.getElementById('confirm-proceed');
+    
+    if (confirmModalCloseBtn) {
+      confirmModalCloseBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        hideConfirmModal();
+      });
     }
-  });
+    
+    if (confirmCancelBtn) {
+      confirmCancelBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        hideConfirmModal();
+      });
+    }
+    
+    if (confirmProceedBtn) {
+      confirmProceedBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        proceedWithConfirmedAction();
+      });
+    }
+
+    // Click outside modals to close - IMPROVED
+    if (helpModal) {
+      helpModal.addEventListener('click', function(e) {
+        if (e.target === helpModal) {
+          hideHelpModal();
+        }
+      });
+    }
+
+    if (confirmModal) {
+      confirmModal.addEventListener('click', function(e) {
+        if (e.target === confirmModal) {
+          hideConfirmModal();
+        }
+      });
+    }
+
+    // Canvas click events for selection
+    document.addEventListener('click', function(e) {
+      // Check if click is on a canvas item
+      const target = e.target.closest('.canvas-section, .canvas-subsection, .content-item');
+      if (target) {
+        e.stopPropagation();
+        selectElement(target);
+      } else if (!e.target.closest('.properties-panel, .context-menu, .modal, .control-btn')) {
+        clearSelection();
+      }
+    });
+
+    // ESC key to close modals
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') {
+        if (!helpModal.classList.contains('hidden')) {
+          hideHelpModal();
+        }
+        if (!confirmModal.classList.contains('hidden')) {
+          hideConfirmModal();
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Error initializing event listeners:', error);
+  }
 }
 
-// Export to PNG Function
+// Export to PNG Function - ENHANCED WITH BETTER ERROR HANDLING
 function exportToPNG() {
   if (canvasData.sections.length === 0) {
     alert('Please add some content to export.');
@@ -275,51 +353,92 @@ function exportToPNG() {
   }
 
   const exportBtn = document.getElementById('export-png-btn');
+  if (!exportBtn) {
+    console.error('Export PNG button not found');
+    return;
+  }
+
   const originalText = exportBtn.innerHTML;
   exportBtn.innerHTML = '📷 Exporting...';
   exportBtn.disabled = true;
 
-  // Configure html2canvas options
-  const options = {
-    backgroundColor: getComputedStyle(document.documentElement).getPropertyValue('--color-background').trim(),
-    scale: 2, // Higher quality
-    useCORS: true,
-    allowTaint: true,
-    scrollX: 0,
-    scrollY: 0,
-    width: canvasEl.scrollWidth,
-    height: canvasEl.scrollHeight
-  };
+  // Wait a moment for UI update
+  setTimeout(() => {
+    try {
+      // Check if html2canvas is available
+      if (typeof html2canvas === 'undefined') {
+        throw new Error('html2canvas library not loaded');
+      }
 
-  html2canvas(canvasEl, options).then(canvas => {
-    // Create download link
-    const link = document.createElement('a');
-    const timestamp = new Date().toISOString().split('T')[0];
-    link.download = `lms-wireframe-${timestamp}.png`;
-    link.href = canvas.toDataURL('image/png', 1.0);
-    
-    // Trigger download
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    
-    // Reset button
-    exportBtn.innerHTML = '✅ Exported!';
-    setTimeout(() => {
+      // Configure html2canvas options for better quality
+      const options = {
+        backgroundColor: getComputedStyle(document.documentElement).getPropertyValue('--color-background').trim(),
+        scale: 2, // Higher quality
+        useCORS: true,
+        allowTaint: true,
+        scrollX: 0,
+        scrollY: 0,
+        width: canvasEl.scrollWidth,
+        height: canvasEl.scrollHeight,
+        logging: false, // Disable console logging
+        imageTimeout: 0, // No timeout for loading images
+        removeContainer: true,
+        ignoreElements: function(element) {
+          // Ignore elements that shouldn't be in the export
+          return element.classList.contains('canvas-placeholder') ||
+                 element.classList.contains('drag-preview') ||
+                 element.classList.contains('drop-zone-indicator') ||
+                 element.classList.contains('context-menu');
+        }
+      };
+
+      html2canvas(canvasEl, options).then(canvas => {
+        try {
+          // Create download link
+          const link = document.createElement('a');
+          const timestamp = new Date().toISOString().split('T')[0];
+          link.download = `lms-wireframe-${timestamp}.png`;
+          link.href = canvas.toDataURL('image/png', 1.0);
+          
+          // Trigger download
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          
+          // Success feedback
+          exportBtn.innerHTML = '✅ Exported!';
+          setTimeout(() => {
+            exportBtn.innerHTML = originalText;
+            exportBtn.disabled = false;
+          }, 2000);
+          
+        } catch (downloadError) {
+          console.error('Error creating download:', downloadError);
+          alert('Error creating download. Please try again.');
+          
+          exportBtn.innerHTML = originalText;
+          exportBtn.disabled = false;
+        }
+        
+      }).catch(error => {
+        console.error('Error generating PNG:', error);
+        alert('Error generating PNG. Please try again.');
+        
+        exportBtn.innerHTML = originalText;
+        exportBtn.disabled = false;
+      });
+      
+    } catch (error) {
+      console.error('Error initializing PNG export:', error);
+      alert('Error initializing PNG export. Please try again.');
+      
       exportBtn.innerHTML = originalText;
       exportBtn.disabled = false;
-    }, 2000);
-  }).catch(error => {
-    console.error('Error generating PNG:', error);
-    alert('Error generating PNG. Please try again.');
-    
-    // Reset button
-    exportBtn.innerHTML = originalText;
-    exportBtn.disabled = false;
-  });
+    }
+  }, 100);
 }
 
-// Drag and Drop Handlers
+// ENHANCED Drag and Drop Handlers with Improved Section Reordering
 function handleDragStart(e) {
   if (!e.target.classList.contains('component-item') && 
       !e.target.classList.contains('canvas-section') && 
@@ -336,10 +455,12 @@ function handleDragStart(e) {
                 e.target.querySelector('.section-name, .subsection-name, .content-name')?.textContent || 
                 'Unknown Item';
   
-  dragPreview.textContent = name;
-  dragPreview.classList.remove('hidden');
-  dragPreview.style.left = e.clientX + 10 + 'px';
-  dragPreview.style.top = e.clientY + 10 + 'px';
+  if (dragPreview) {
+    dragPreview.textContent = name;
+    dragPreview.classList.remove('hidden');
+    dragPreview.style.left = e.clientX + 10 + 'px';
+    dragPreview.style.top = e.clientY + 10 + 'px';
+  }
 
   // Set drag data
   e.dataTransfer.effectAllowed = 'move';
@@ -350,7 +471,7 @@ function handleDragOver(e) {
   e.preventDefault();
 
   // Update drag preview position
-  if (!dragPreview.classList.contains('hidden')) {
+  if (dragPreview && !dragPreview.classList.contains('hidden')) {
     dragPreview.style.left = e.clientX + 10 + 'px';
     dragPreview.style.top = e.clientY + 10 + 'px';
   }
@@ -366,8 +487,13 @@ function handleDragOver(e) {
   if (result && result.target && canAcceptDrop(draggedType, result.target)) {
     result.target.classList.add('drag-over');
     
+    // Enhanced section reordering indicators
+    if (draggedType === 'section' && result.target.classList.contains('canvas')) {
+      showSectionInsertionIndicator(result.insertionPoint);
+      insertionIndex = result.insertionPoint;
+    } 
     // Show insertion indicators for content reordering
-    if (result.insertionPoint !== undefined) {
+    else if (result.insertionPoint !== undefined) {
       showInsertionIndicator(result.target, result.insertionPoint);
       insertionIndex = result.insertionPoint;
     } else {
@@ -399,11 +525,15 @@ function handleDrop(e) {
     canvasPlaceholder.style.display = 'none';
   }
 
-  // Handle different drop scenarios
-  if (draggedElement.classList.contains('component-item')) {
-    handleComponentDrop(draggedElement, dragOverElement, insertionIndex);
-  } else {
-    handleExistingElementMove(draggedElement, dragOverElement, insertionIndex);
+  try {
+    // Handle different drop scenarios
+    if (draggedElement.classList.contains('component-item')) {
+      handleComponentDrop(draggedElement, dragOverElement, insertionIndex);
+    } else {
+      handleExistingElementMove(draggedElement, dragOverElement, insertionIndex);
+    }
+  } catch (error) {
+    console.error('Error handling drop:', error);
   }
 
   hideDropZoneIndicator();
@@ -413,21 +543,51 @@ function handleDrop(e) {
 }
 
 function handleDragEnd(e) {
-  if (e.target.classList.contains('dragging')) {
+  if (e.target && e.target.classList.contains('dragging')) {
     e.target.classList.remove('dragging');
   }
   
   draggedElement = null;
   dragOverElement = null;
   insertionIndex = -1;
-  dragPreview.classList.add('hidden');
+  
+  if (dragPreview) {
+    dragPreview.classList.add('hidden');
+  }
+  
   hideDropZoneIndicator();
   clearDropStates();
 }
 
-// Enhanced drop target detection with insertion point calculation
+// ENHANCED drop target detection with improved section reordering
 function findDropTarget(target, clientY, draggedType) {
-  // Find the closest valid container
+  // Enhanced section reordering logic
+  if (draggedType === 'section') {
+    const canvas = target.closest('.canvas');
+    if (canvas) {
+      const sections = Array.from(canvas.querySelectorAll('.canvas-section')).filter(s => s !== draggedElement);
+      
+      if (sections.length === 0) {
+        return { target: canvas, insertionPoint: 0 };
+      }
+      
+      // Find insertion point based on mouse position with improved accuracy
+      let insertionPoint = sections.length;
+      for (let i = 0; i < sections.length; i++) {
+        const rect = sections[i].getBoundingClientRect();
+        const sectionMiddle = rect.top + rect.height / 2;
+        
+        if (clientY < sectionMiddle) {
+          insertionPoint = i;
+          break;
+        }
+      }
+      
+      return { target: canvas, insertionPoint };
+    }
+  }
+  
+  // Find the closest valid container for content items
   const containers = getValidContainers(draggedType);
   
   for (const containerType of containers) {
@@ -477,7 +637,38 @@ function findDropTarget(target, clientY, draggedType) {
   return null;
 }
 
-// Show visual insertion indicator
+// ENHANCED section insertion indicator
+function showSectionInsertionIndicator(insertionPoint) {
+  const sections = Array.from(canvasEl.querySelectorAll('.canvas-section')).filter(s => s !== draggedElement);
+  
+  const indicator = document.createElement('div');
+  indicator.className = 'section-drop-indicator active';
+  sectionDropIndicators.push(indicator);
+  
+  if (insertionPoint === 0) {
+    if (sections.length > 0) {
+      canvasEl.insertBefore(indicator, sections[0]);
+    } else {
+      const placeholder = canvasEl.querySelector('.canvas-placeholder');
+      if (placeholder) {
+        canvasEl.insertBefore(indicator, placeholder);
+      } else {
+        canvasEl.appendChild(indicator);
+      }
+    }
+  } else if (insertionPoint >= sections.length) {
+    const placeholder = canvasEl.querySelector('.canvas-placeholder');
+    if (placeholder) {
+      canvasEl.insertBefore(indicator, placeholder);
+    } else {
+      canvasEl.appendChild(indicator);
+    }
+  } else {
+    canvasEl.insertBefore(indicator, sections[insertionPoint]);
+  }
+}
+
+// Show visual insertion indicator for content
 function showInsertionIndicator(container, insertionPoint) {
   const children = Array.from(container.children).filter(child => 
     (child.classList.contains('content-item') || child.classList.contains('canvas-subsection')) &&
@@ -497,18 +688,27 @@ function showInsertionIndicator(container, insertionPoint) {
   }
 }
 
-// Clear all drop states and indicators
+// ENHANCED clear all drop states and indicators
 function clearDropStates() {
   document.querySelectorAll('.drag-over, .invalid-drop').forEach(el => {
     el.classList.remove('drag-over', 'invalid-drop');
   });
   
+  // Clear content drop indicators
   dropIndicators.forEach(indicator => {
     if (indicator.parentNode) {
       indicator.parentNode.removeChild(indicator);
     }
   });
   dropIndicators = [];
+  
+  // Clear section drop indicators
+  sectionDropIndicators.forEach(indicator => {
+    if (indicator.parentNode) {
+      indicator.parentNode.removeChild(indicator);
+    }
+  });
+  sectionDropIndicators = [];
 }
 
 // Helper Functions for Drag and Drop
@@ -544,29 +744,34 @@ function getValidContainers(itemType) {
 
 // Improved drop target detection
 function canAcceptDrop(draggedType, dropTarget) {
-  // Check if the section allows content (for "What is on this week" sections)
-  if (dropTarget.classList.contains('section-content')) {
-    const section = dropTarget.closest('.canvas-section');
-    if (section && section.classList.contains('special-section')) {
-      return false; // Special sections don't allow content
+  try {
+    // Check if the section allows content (for "What is on this week" sections)
+    if (dropTarget.classList.contains('section-content')) {
+      const section = dropTarget.closest('.canvas-section');
+      if (section && section.classList.contains('special-section')) {
+        return false; // Special sections don't allow content
+      }
+      
+      // Check if the dragged type is allowed in sections
+      return appData.hierarchyRules.section.includes(draggedType);
     }
     
-    // Check if the dragged type is allowed in sections
-    return appData.hierarchyRules.section.includes(draggedType);
+    // Check for subsection content
+    if (dropTarget.classList.contains('subsection-content')) {
+      // Subsections can accept resources, activities, and design elements
+      return appData.hierarchyRules.subsection.includes(draggedType);
+    }
+    
+    // Canvas can accept sections
+    if (dropTarget.classList.contains('canvas')) {
+      return draggedType === 'section';
+    }
+    
+    return false;
+  } catch (error) {
+    console.error('Error in canAcceptDrop:', error);
+    return false;
   }
-  
-  // Check for subsection content
-  if (dropTarget.classList.contains('subsection-content')) {
-    // Subsections can accept resources, activities, and design elements
-    return appData.hierarchyRules.subsection.includes(draggedType);
-  }
-  
-  // Canvas can accept sections
-  if (dropTarget.classList.contains('canvas')) {
-    return draggedType === 'section';
-  }
-  
-  return false;
 }
 
 function showDropZoneIndicator(x, y, isValid) {
@@ -577,12 +782,14 @@ function showDropZoneIndicator(x, y, isValid) {
   dropZoneIndicator.classList.remove('hidden');
   
   const content = dropZoneIndicator.querySelector('.drop-zone-content');
-  if (isValid) {
-    dropZoneIndicator.style.backgroundColor = 'var(--color-success)';
-    content.innerHTML = '<span class="drop-zone-icon">✅</span><span class="drop-zone-text">Drop here</span>';
-  } else {
-    dropZoneIndicator.style.backgroundColor = 'var(--color-error)';
-    content.innerHTML = '<span class="drop-zone-icon">❌</span><span class="drop-zone-text">Invalid drop</span>';
+  if (content) {
+    if (isValid) {
+      dropZoneIndicator.style.backgroundColor = 'var(--color-success)';
+      content.innerHTML = '<span class="drop-zone-icon">✅</span><span class="drop-zone-text">Drop here</span>';
+    } else {
+      dropZoneIndicator.style.backgroundColor = 'var(--color-error)';
+      content.innerHTML = '<span class="drop-zone-icon">❌</span><span class="drop-zone-text">Invalid drop</span>';
+    }
   }
 }
 
@@ -594,184 +801,225 @@ function hideDropZoneIndicator() {
 
 // Handle Component Drop with Preloaded Content
 function handleComponentDrop(componentEl, dropTarget, insertionIndex = -1) {
-  const templateData = appData.sectionTemplates.find(t => t.id === componentEl.dataset.id);
-  
-  const itemData = {
-    id: generateId(),
-    name: componentEl.dataset.name,
-    icon: componentEl.dataset.icon,
-    type: componentEl.dataset.type,
-    originalId: componentEl.dataset.id,
-    allowsContent: componentEl.dataset.allowsContent === 'true',
-    preloadedContent: templateData?.preloadedContent || []
-  };
+  try {
+    const templateData = appData.sectionTemplates.find(t => t.id === componentEl.dataset.id);
+    
+    const itemData = {
+      id: generateId(),
+      name: componentEl.dataset.name,
+      icon: componentEl.dataset.icon,
+      type: componentEl.dataset.type,
+      originalId: componentEl.dataset.id,
+      allowsContent: componentEl.dataset.allowsContent === 'true',
+      preloadedContent: templateData?.preloadedContent || []
+    };
 
-  if (dropTarget.classList.contains('canvas')) {
-    if (itemData.type === 'section') {
-      createCanvasSection(itemData);
+    if (dropTarget.classList.contains('canvas')) {
+      if (itemData.type === 'section') {
+        createCanvasSection(itemData, insertionIndex);
+      }
+    } else if (dropTarget.classList.contains('section-content')) {
+      const sectionEl = dropTarget.closest('.canvas-section');
+      createContentInSection(itemData, sectionEl, insertionIndex);
+    } else if (dropTarget.classList.contains('subsection-content')) {
+      const subsectionEl = dropTarget.closest('.canvas-subsection');
+      createContentInSubsection(itemData, subsectionEl, insertionIndex);
     }
-  } else if (dropTarget.classList.contains('section-content')) {
-    const sectionEl = dropTarget.closest('.canvas-section');
-    createContentInSection(itemData, sectionEl, insertionIndex);
-  } else if (dropTarget.classList.contains('subsection-content')) {
-    const subsectionEl = dropTarget.closest('.canvas-subsection');
-    createContentInSubsection(itemData, subsectionEl, insertionIndex);
+  } catch (error) {
+    console.error('Error in handleComponentDrop:', error);
   }
 }
 
-// Canvas Management with Preloaded Content Support
-function createCanvasSection(itemData) {
-  const sectionEl = document.createElement('div');
-  sectionEl.className = `canvas-section ${!itemData.allowsContent ? 'special-section' : ''}`;
-  sectionEl.dataset.id = itemData.id;
-  sectionEl.dataset.type = 'section';
-  sectionEl.draggable = true;
+// ENHANCED Canvas Management with improved section positioning
+function createCanvasSection(itemData, insertionIndex = -1) {
+  try {
+    const sectionEl = document.createElement('div');
+    sectionEl.className = `canvas-section ${!itemData.allowsContent ? 'special-section' : ''}`;
+    sectionEl.dataset.id = itemData.id;
+    sectionEl.dataset.type = 'section';
+    sectionEl.draggable = true;
 
-  sectionEl.innerHTML = `
-    <div class="section-header">
-      <div class="section-title" data-name="${itemData.name}">
-        <span class="component-icon">${itemData.icon}</span>
-        <span class="section-name">${itemData.name}</span>
+    sectionEl.innerHTML = `
+      <div class="section-header">
+        <div class="section-title" data-name="${itemData.name}">
+          <span class="component-icon">${itemData.icon}</span>
+          <span class="section-name">${itemData.name}</span>
+        </div>
+        <div class="section-controls">
+          <button class="control-btn" onclick="deleteItem(this.closest('.canvas-section'))" title="Delete">🗑️</button>
+        </div>
       </div>
-      <div class="section-controls">
-        <button class="control-btn" onclick="deleteItem(this.closest('.canvas-section'))" title="Delete">🗑️</button>
-      </div>
-    </div>
-    <div class="section-content empty"></div>
-  `;
+      <div class="section-content empty"></div>
+    `;
 
-  canvasEl.appendChild(sectionEl);
-  
-  // Add to canvas data
-  const sectionData = {
-    id: itemData.id,
-    name: itemData.name,
-    icon: itemData.icon,
-    type: 'section',
-    allowsContent: itemData.allowsContent,
-    summaryForStudents: '',
-    notesForDeveloper: '',
-    content: []
-  };
-  
-  canvasData.sections.push(sectionData);
-  
-  // Add preloaded content
-  if (itemData.preloadedContent && itemData.preloadedContent.length > 0) {
-    const sectionContent = sectionEl.querySelector('.section-content');
-    
-    itemData.preloadedContent.forEach(preloadedItem => {
-      const contentData = {
-        id: generateId(),
-        name: preloadedItem.name,
-        icon: preloadedItem.icon,
-        type: preloadedItem.type,
-        ...createContentData({...preloadedItem, id: generateId()})
-      };
+    // Insert at specific position for improved section reordering
+    if (insertionIndex >= 0) {
+      const sections = Array.from(canvasEl.querySelectorAll('.canvas-section'));
+      const placeholder = canvasEl.querySelector('.canvas-placeholder');
       
-      if (preloadedItem.type === 'subsection') {
-        const subsectionEl = createSubsectionElement(contentData);
-        sectionContent.appendChild(subsectionEl);
+      if (insertionIndex >= sections.length) {
+        if (placeholder) {
+          canvasEl.insertBefore(sectionEl, placeholder);
+        } else {
+          canvasEl.appendChild(sectionEl);
+        }
       } else {
-        const contentEl = createContentElement(contentData);
-        sectionContent.appendChild(contentEl);
+        canvasEl.insertBefore(sectionEl, sections[insertionIndex]);
       }
-      
-      sectionData.content.push(contentData);
-    });
+    } else {
+      const placeholder = canvasEl.querySelector('.canvas-placeholder');
+      if (placeholder) {
+        canvasEl.insertBefore(sectionEl, placeholder);
+      } else {
+        canvasEl.appendChild(sectionEl);
+      }
+    }
     
-    sectionContent.classList.remove('empty');
-  }
+    // Add to canvas data at correct position
+    const sectionData = {
+      id: itemData.id,
+      name: itemData.name,
+      icon: itemData.icon,
+      type: 'section',
+      allowsContent: itemData.allowsContent,
+      summaryForStudents: '',
+      notesForDeveloper: '',
+      content: []
+    };
+    
+    if (insertionIndex >= 0 && insertionIndex < canvasData.sections.length) {
+      canvasData.sections.splice(insertionIndex, 0, sectionData);
+    } else {
+      canvasData.sections.push(sectionData);
+    }
+    
+    // Add preloaded content
+    if (itemData.preloadedContent && itemData.preloadedContent.length > 0) {
+      const sectionContent = sectionEl.querySelector('.section-content');
+      
+      itemData.preloadedContent.forEach(preloadedItem => {
+        const contentData = {
+          id: generateId(),
+          name: preloadedItem.name,
+          icon: preloadedItem.icon,
+          type: preloadedItem.type,
+          ...createContentData({...preloadedItem, id: generateId()})
+        };
+        
+        if (preloadedItem.type === 'subsection') {
+          const subsectionEl = createSubsectionElement(contentData);
+          sectionContent.appendChild(subsectionEl);
+        } else {
+          const contentEl = createContentElement(contentData);
+          sectionContent.appendChild(contentEl);
+        }
+        
+        sectionData.content.push(contentData);
+      });
+      
+      sectionContent.classList.remove('empty');
+    }
 
-  saveCanvasData();
+    saveCanvasData();
+  } catch (error) {
+    console.error('Error creating canvas section:', error);
+  }
 }
 
 function createContentInSection(itemData, sectionEl, insertionIndex = -1) {
-  const sectionContent = sectionEl.querySelector('.section-content');
-  
-  let contentEl;
-  if (itemData.type === 'subsection') {
-    contentEl = createSubsectionElement(itemData);
-  } else {
-    contentEl = createContentElement(itemData);
-  }
-  
-  // Insert at specific position if provided
-  if (insertionIndex >= 0) {
-    const children = Array.from(sectionContent.children).filter(child => 
-      child.classList.contains('content-item') || child.classList.contains('canvas-subsection')
-    );
+  try {
+    const sectionContent = sectionEl.querySelector('.section-content');
     
-    if (insertionIndex >= children.length) {
+    let contentEl;
+    if (itemData.type === 'subsection') {
+      contentEl = createSubsectionElement(itemData);
+    } else {
+      contentEl = createContentElement(itemData);
+    }
+    
+    // Insert at specific position if provided
+    if (insertionIndex >= 0) {
+      const children = Array.from(sectionContent.children).filter(child => 
+        child.classList.contains('content-item') || child.classList.contains('canvas-subsection')
+      );
+      
+      if (insertionIndex >= children.length) {
+        sectionContent.appendChild(contentEl);
+      } else {
+        sectionContent.insertBefore(contentEl, children[insertionIndex]);
+      }
+    } else {
       sectionContent.appendChild(contentEl);
-    } else {
-      sectionContent.insertBefore(contentEl, children[insertionIndex]);
     }
-  } else {
-    sectionContent.appendChild(contentEl);
-  }
-  
-  sectionContent.classList.remove('empty');
-  
-  // Add to canvas data
-  const sectionId = sectionEl.dataset.id;
-  const section = canvasData.sections.find(s => s.id === sectionId);
-  if (section) {
-    const contentData = createContentData(itemData);
     
-    if (insertionIndex >= 0 && insertionIndex < section.content.length) {
-      section.content.splice(insertionIndex, 0, contentData);
-    } else {
-      section.content.push(contentData);
+    sectionContent.classList.remove('empty');
+    
+    // Add to canvas data
+    const sectionId = sectionEl.dataset.id;
+    const section = canvasData.sections.find(s => s.id === sectionId);
+    if (section) {
+      const contentData = createContentData(itemData);
+      
+      if (insertionIndex >= 0 && insertionIndex < section.content.length) {
+        section.content.splice(insertionIndex, 0, contentData);
+      } else {
+        section.content.push(contentData);
+      }
     }
+    
+    saveCanvasData();
+  } catch (error) {
+    console.error('Error creating content in section:', error);
   }
-  
-  saveCanvasData();
 }
 
 function createContentInSubsection(itemData, subsectionEl, insertionIndex = -1) {
-  const subsectionContent = subsectionEl.querySelector('.subsection-content');
-  const contentEl = createContentElement(itemData);
-  
-  // Insert at specific position if provided
-  if (insertionIndex >= 0) {
-    const children = Array.from(subsectionContent.children).filter(child => 
-      child.classList.contains('content-item')
-    );
+  try {
+    const subsectionContent = subsectionEl.querySelector('.subsection-content');
+    const contentEl = createContentElement(itemData);
     
-    if (insertionIndex >= children.length) {
+    // Insert at specific position if provided
+    if (insertionIndex >= 0) {
+      const children = Array.from(subsectionContent.children).filter(child => 
+        child.classList.contains('content-item')
+      );
+      
+      if (insertionIndex >= children.length) {
+        subsectionContent.appendChild(contentEl);
+      } else {
+        subsectionContent.insertBefore(contentEl, children[insertionIndex]);
+      }
+    } else {
       subsectionContent.appendChild(contentEl);
-    } else {
-      subsectionContent.insertBefore(contentEl, children[insertionIndex]);
-    }
-  } else {
-    subsectionContent.appendChild(contentEl);
-  }
-  
-  subsectionContent.classList.remove('empty');
-  
-  // Add to canvas data
-  const subsectionId = subsectionEl.dataset.id;
-  const sectionEl = subsectionEl.closest('.canvas-section');
-  const sectionId = sectionEl.dataset.id;
-  const section = canvasData.sections.find(s => s.id === sectionId);
-  const subsection = section?.content?.find(item => item.id === subsectionId);
-  
-  if (subsection) {
-    const contentData = createContentData(itemData);
-    
-    if (!subsection.content) {
-      subsection.content = [];
     }
     
-    if (insertionIndex >= 0 && insertionIndex < subsection.content.length) {
-      subsection.content.splice(insertionIndex, 0, contentData);
-    } else {
-      subsection.content.push(contentData);
+    subsectionContent.classList.remove('empty');
+    
+    // Add to canvas data
+    const subsectionId = subsectionEl.dataset.id;
+    const sectionEl = subsectionEl.closest('.canvas-section');
+    const sectionId = sectionEl.dataset.id;
+    const section = canvasData.sections.find(s => s.id === sectionId);
+    const subsection = section?.content?.find(item => item.id === subsectionId);
+    
+    if (subsection) {
+      const contentData = createContentData(itemData);
+      
+      if (!subsection.content) {
+        subsection.content = [];
+      }
+      
+      if (insertionIndex >= 0 && insertionIndex < subsection.content.length) {
+        subsection.content.splice(insertionIndex, 0, contentData);
+      } else {
+        subsection.content.push(contentData);
+      }
     }
+    
+    saveCanvasData();
+  } catch (error) {
+    console.error('Error creating content in subsection:', error);
   }
-  
-  saveCanvasData();
 }
 
 function createSubsectionElement(itemData) {
@@ -843,143 +1091,207 @@ function createContentData(itemData) {
   }
 }
 
-// Improved existing element move with insertion index support
+// ENHANCED existing element move with improved section reordering
 function handleExistingElementMove(element, dropTarget, insertionIndex = -1) {
-  // Get element data before removing
-  const itemData = getElementDataById(element.dataset.id, element.dataset.type);
-  if (!itemData) return;
-  
-  // Remove from current parent data
-  removeFromParentContent(element);
-  
-  // Remove from current DOM position
-  const oldParent = element.parentElement;
-  element.remove();
-  
-  // Add to new parent at specific position
-  dropTarget.classList.remove('empty');
-  
-  if (insertionIndex >= 0) {
-    const children = Array.from(dropTarget.children).filter(child => 
-      child.classList.contains('content-item') || child.classList.contains('canvas-subsection')
-    );
+  try {
+    // Get element data before removing
+    const itemData = getElementDataById(element.dataset.id, element.dataset.type);
+    if (!itemData) return;
     
-    if (insertionIndex >= children.length) {
-      dropTarget.appendChild(element);
-    } else {
-      dropTarget.insertBefore(element, children[insertionIndex]);
-    }
-  } else {
-    dropTarget.appendChild(element);
-  }
-  
-  // Update data structure
-  if (dropTarget.classList.contains('section-content')) {
-    const sectionEl = dropTarget.closest('.canvas-section');
-    const sectionId = sectionEl.dataset.id;
-    const section = canvasData.sections.find(s => s.id === sectionId);
-    
-    if (section) {
-      if (insertionIndex >= 0 && insertionIndex < section.content.length) {
-        section.content.splice(insertionIndex, 0, itemData);
-      } else {
-        section.content.push(itemData);
-      }
-    }
-  } else if (dropTarget.classList.contains('subsection-content')) {
-    const subsectionEl = dropTarget.closest('.canvas-subsection');
-    const subsectionId = subsectionEl.dataset.id;
-    const sectionEl = subsectionEl.closest('.canvas-section');
-    const sectionId = sectionEl.dataset.id;
-    const section = canvasData.sections.find(s => s.id === sectionId);
-    const subsection = section?.content?.find(item => item.id === subsectionId);
-    
-    if (subsection) {
-      if (!subsection.content) {
-        subsection.content = [];
+    // Special handling for section reordering
+    if (element.classList.contains('canvas-section') && dropTarget.classList.contains('canvas')) {
+      // Remove from current data position
+      const currentIndex = canvasData.sections.findIndex(s => s.id === element.dataset.id);
+      if (currentIndex !== -1) {
+        canvasData.sections.splice(currentIndex, 1);
       }
       
-      if (insertionIndex >= 0 && insertionIndex < subsection.content.length) {
-        subsection.content.splice(insertionIndex, 0, itemData);
+      // Remove from current DOM position
+      const oldParent = element.parentElement;
+      element.remove();
+      
+      // Insert at new position
+      if (insertionIndex >= 0) {
+        const sections = Array.from(canvasEl.querySelectorAll('.canvas-section'));
+        const placeholder = canvasEl.querySelector('.canvas-placeholder');
+        
+        if (insertionIndex >= sections.length) {
+          if (placeholder) {
+            canvasEl.insertBefore(element, placeholder);
+          } else {
+            canvasEl.appendChild(element);
+          }
+        } else {
+          canvasEl.insertBefore(element, sections[insertionIndex]);
+        }
+        
+        // Insert in data at correct position
+        if (insertionIndex >= canvasData.sections.length) {
+          canvasData.sections.push(itemData);
+        } else {
+          canvasData.sections.splice(insertionIndex, 0, itemData);
+        }
       } else {
-        subsection.content.push(itemData);
+        const placeholder = canvasEl.querySelector('.canvas-placeholder');
+        if (placeholder) {
+          canvasEl.insertBefore(element, placeholder);
+        } else {
+          canvasEl.appendChild(element);
+        }
+        canvasData.sections.push(itemData);
+      }
+      
+      saveCanvasData();
+      return;
+    }
+    
+    // Handle content item moves (existing logic)
+    removeFromParentContent(element);
+    
+    // Remove from current DOM position
+    const oldParent = element.parentElement;
+    element.remove();
+    
+    // Add to new parent at specific position
+    dropTarget.classList.remove('empty');
+    
+    if (insertionIndex >= 0) {
+      const children = Array.from(dropTarget.children).filter(child => 
+        child.classList.contains('content-item') || child.classList.contains('canvas-subsection')
+      );
+      
+      if (insertionIndex >= children.length) {
+        dropTarget.appendChild(element);
+      } else {
+        dropTarget.insertBefore(element, children[insertionIndex]);
+      }
+    } else {
+      dropTarget.appendChild(element);
+    }
+    
+    // Update data structure
+    if (dropTarget.classList.contains('section-content')) {
+      const sectionEl = dropTarget.closest('.canvas-section');
+      const sectionId = sectionEl.dataset.id;
+      const section = canvasData.sections.find(s => s.id === sectionId);
+      
+      if (section) {
+        if (insertionIndex >= 0 && insertionIndex < section.content.length) {
+          section.content.splice(insertionIndex, 0, itemData);
+        } else {
+          section.content.push(itemData);
+        }
+      }
+    } else if (dropTarget.classList.contains('subsection-content')) {
+      const subsectionEl = dropTarget.closest('.canvas-subsection');
+      const subsectionId = subsectionEl.dataset.id;
+      const sectionEl = subsectionEl.closest('.canvas-section');
+      const sectionId = sectionEl.dataset.id;
+      const section = canvasData.sections.find(s => s.id === sectionId);
+      const subsection = section?.content?.find(item => item.id === subsectionId);
+      
+      if (subsection) {
+        if (!subsection.content) {
+          subsection.content = [];
+        }
+        
+        if (insertionIndex >= 0 && insertionIndex < subsection.content.length) {
+          subsection.content.splice(insertionIndex, 0, itemData);
+        } else {
+          subsection.content.push(itemData);
+        }
       }
     }
-  }
-  
-  // Check if old parent is now empty
-  if (oldParent) {
-    const remainingChildren = Array.from(oldParent.children).filter(child => 
-      child.classList.contains('content-item') || child.classList.contains('canvas-subsection')
-    );
-    if (remainingChildren.length === 0) {
-      oldParent.classList.add('empty');
+    
+    // Check if old parent is now empty
+    if (oldParent) {
+      const remainingChildren = Array.from(oldParent.children).filter(child => 
+        child.classList.contains('content-item') || child.classList.contains('canvas-subsection')
+      );
+      if (remainingChildren.length === 0) {
+        oldParent.classList.add('empty');
+      }
     }
+    
+    saveCanvasData();
+  } catch (error) {
+    console.error('Error in handleExistingElementMove:', error);
   }
-  
-  saveCanvasData();
 }
 
 // Helper function to get element data by ID and type
 function getElementDataById(elementId, elementType) {
-  // Search through all sections and their content
-  for (const section of canvasData.sections) {
-    if (section.id === elementId) {
-      return { ...section };
-    }
-    
-    for (const item of section.content || []) {
-      if (item.id === elementId) {
-        return { ...item };
+  try {
+    // Search through all sections and their content
+    for (const section of canvasData.sections) {
+      if (section.id === elementId) {
+        return { ...section };
       }
       
-      if (item.type === 'subsection' && item.content) {
-        for (const subItem of item.content) {
-          if (subItem.id === elementId) {
-            return { ...subItem };
+      for (const item of section.content || []) {
+        if (item.id === elementId) {
+          return { ...item };
+        }
+        
+        if (item.type === 'subsection' && item.content) {
+          for (const subItem of item.content) {
+            if (subItem.id === elementId) {
+              return { ...subItem };
+            }
           }
         }
       }
     }
+    
+    return null;
+  } catch (error) {
+    console.error('Error getting element data by ID:', error);
+    return null;
   }
-  
-  return null;
 }
 
 function removeFromParentContent(element) {
-  const elementId = element.dataset.id;
-  const parentContentEl = element.parentElement;
-  
-  if (parentContentEl.classList.contains('section-content')) {
-    // Remove from section content
-    const sectionEl = parentContentEl.closest('.canvas-section');
-    const sectionId = sectionEl.dataset.id;
-    const section = canvasData.sections.find(s => s.id === sectionId);
-    if (section) {
-      section.content = section.content.filter(item => item.id !== elementId);
-    }
-  } else if (parentContentEl.classList.contains('subsection-content')) {
-    // Remove from subsection content
-    const subsectionEl = parentContentEl.closest('.canvas-subsection');
-    const subsectionId = subsectionEl.dataset.id;
-    const sectionEl = subsectionEl.closest('.canvas-section');
-    const sectionId = sectionEl.dataset.id;
-    const section = canvasData.sections.find(s => s.id === sectionId);
-    const subsection = section?.content?.find(item => item.id === subsectionId);
+  try {
+    const elementId = element.dataset.id;
+    const parentContentEl = element.parentElement;
     
-    if (subsection && subsection.content) {
-      subsection.content = subsection.content.filter(item => item.id !== elementId);
+    if (parentContentEl.classList.contains('section-content')) {
+      // Remove from section content
+      const sectionEl = parentContentEl.closest('.canvas-section');
+      const sectionId = sectionEl.dataset.id;
+      const section = canvasData.sections.find(s => s.id === sectionId);
+      if (section) {
+        section.content = section.content.filter(item => item.id !== elementId);
+      }
+    } else if (parentContentEl.classList.contains('subsection-content')) {
+      // Remove from subsection content
+      const subsectionEl = parentContentEl.closest('.canvas-subsection');
+      const subsectionId = subsectionEl.dataset.id;
+      const sectionEl = subsectionEl.closest('.canvas-section');
+      const sectionId = sectionEl.dataset.id;
+      const section = canvasData.sections.find(s => s.id === sectionId);
+      const subsection = section?.content?.find(item => item.id === subsectionId);
+      
+      if (subsection && subsection.content) {
+        subsection.content = subsection.content.filter(item => item.id !== elementId);
+      }
     }
+  } catch (error) {
+    console.error('Error removing from parent content:', error);
   }
 }
 
-// Help Modal Functions
+// Help Modal Functions - IMPROVED
 function showHelpModal() {
-  helpModal.classList.remove('hidden');
+  if (helpModal) {
+    helpModal.classList.remove('hidden');
+  }
 }
 
 function hideHelpModal() {
-  helpModal.classList.add('hidden');
+  if (helpModal) {
+    helpModal.classList.add('hidden');
+  }
 }
 
 // Confirmation Modal Functions (FIXED)
@@ -989,13 +1301,24 @@ function showClearConfirmation() {
 }
 
 function showConfirmationDialog(message, action) {
-  document.getElementById('confirm-message').textContent = message;
-  pendingConfirmAction = action;
-  confirmModal.classList.remove('hidden');
+  try {
+    const messageEl = document.getElementById('confirm-message');
+    if (messageEl) {
+      messageEl.textContent = message;
+    }
+    pendingConfirmAction = action;
+    if (confirmModal) {
+      confirmModal.classList.remove('hidden');
+    }
+  } catch (error) {
+    console.error('Error showing confirmation dialog:', error);
+  }
 }
 
 function hideConfirmModal() {
-  confirmModal.classList.add('hidden');
+  if (confirmModal) {
+    confirmModal.classList.add('hidden');
+  }
   pendingConfirmAction = null;
 }
 
@@ -1012,95 +1335,116 @@ function proceedWithConfirmedAction() {
 
 // Element Selection with Visual Indicators
 function selectElement(element) {
-  // Clear previous selection
-  document.querySelectorAll('.selected').forEach(el => el.classList.remove('selected'));
-  
-  // Select current element
-  element.classList.add('selected');
-  selectedElement = element;
-  
-  // Update properties panel
-  updatePropertiesPanel(element);
+  try {
+    // Clear previous selection
+    document.querySelectorAll('.selected').forEach(el => el.classList.remove('selected'));
+    
+    // Select current element
+    element.classList.add('selected');
+    selectedElement = element;
+    
+    // Update properties panel
+    updatePropertiesPanel(element);
+  } catch (error) {
+    console.error('Error selecting element:', error);
+  }
 }
 
 function clearSelection() {
   document.querySelectorAll('.selected').forEach(el => el.classList.remove('selected'));
   selectedElement = null;
-  propertiesContent.innerHTML = '<p class="properties-empty">Select an item to edit its properties.</p>';
+  if (propertiesContent) {
+    propertiesContent.innerHTML = '<p class="properties-empty">Select an item to edit its properties.</p>';
+  }
 }
 
 // Properties Panel Management with Save Changes Button
 function updatePropertiesPanel(element) {
-  const elementType = getElementTypeFromDOM(element);
-  const elementData = getElementData(element);
-  const fields = appData.propertyFields[elementType] || [];
-  
-  let html = '<form class="properties-form">';
-  
-  fields.forEach(field => {
-    const label = formatFieldLabel(field);
-    const value = elementData[field] || '';
+  try {
+    const elementType = getElementTypeFromDOM(element);
+    const elementData = getElementData(element);
+    const fields = appData.propertyFields[elementType] || [];
     
-    if (field === 'description' || field === 'summaryForStudents' || field === 'notesForDeveloper') {
-      html += `
-        <div class="form-group">
-          <label class="form-label" for="prop-${field}">${label}</label>
-          <textarea class="form-control" id="prop-${field}" placeholder="Enter ${label.toLowerCase()}">${value}</textarea>
-        </div>
-      `;
-    } else {
-      html += `
-        <div class="form-group">
-          <label class="form-label" for="prop-${field}">${label}</label>
-          <input type="text" class="form-control" id="prop-${field}" placeholder="Enter ${label.toLowerCase()}" value="${value}">
-        </div>
-      `;
+    let html = '<form class="properties-form">';
+    
+    fields.forEach(field => {
+      const label = formatFieldLabel(field);
+      const value = elementData[field] || '';
+      
+      if (field === 'description' || field === 'summaryForStudents' || field === 'notesForDeveloper') {
+        html += `
+          <div class="form-group">
+            <label class="form-label" for="prop-${field}">${label}</label>
+            <textarea class="form-control" id="prop-${field}" placeholder="Enter ${label.toLowerCase()}">${value}</textarea>
+          </div>
+        `;
+      } else {
+        html += `
+          <div class="form-group">
+            <label class="form-label" for="prop-${field}">${label}</label>
+            <input type="text" class="form-control" id="prop-${field}" placeholder="Enter ${label.toLowerCase()}" value="${value}">
+          </div>
+        `;
+      }
+    });
+    
+    html += `
+      <div class="properties-save">
+        <button type="button" class="btn btn--primary btn--sm" id="save-changes-btn">💾 Save Changes</button>
+      </div>
+    </form>`;
+    
+    if (propertiesContent) {
+      propertiesContent.innerHTML = html;
+      
+      // Add save changes event listener
+      const saveBtn = document.getElementById('save-changes-btn');
+      if (saveBtn) {
+        saveBtn.addEventListener('click', function() {
+          saveElementChanges(element);
+        });
+      }
     }
-  });
-  
-  html += `
-    <div class="properties-save">
-      <button type="button" class="btn btn--primary btn--sm" id="save-changes-btn">💾 Save Changes</button>
-    </div>
-  </form>`;
-  
-  propertiesContent.innerHTML = html;
-  
-  // Add save changes event listener
-  document.getElementById('save-changes-btn').addEventListener('click', function() {
-    saveElementChanges(element);
-  });
+  } catch (error) {
+    console.error('Error updating properties panel:', error);
+  }
 }
 
 function saveElementChanges(element) {
-  const form = propertiesContent.querySelector('.properties-form');
-  if (!form) return;
+  try {
+    const form = propertiesContent.querySelector('.properties-form');
+    if (!form) return;
 
-  // Get all form fields and update element data
-  const inputs = form.querySelectorAll('input, textarea');
-  
-  inputs.forEach(input => {
-    const fieldName = input.id.replace('prop-', '');
-    const fieldValue = input.value;
-    updateElementData(element, fieldName, fieldValue);
-  });
-
-  // Visual feedback for successful save
-  const saveBtn = document.getElementById('save-changes-btn');
-  const originalText = saveBtn.innerHTML;
-  saveBtn.innerHTML = '✅ Saved!';
-  saveBtn.classList.add('save-success');
-  
-  // Re-select the element to maintain context and update properties panel
-  setTimeout(() => {
-    saveBtn.innerHTML = originalText;
-    saveBtn.classList.remove('save-success');
+    // Get all form fields and update element data
+    const inputs = form.querySelectorAll('input, textarea');
     
-    // Re-update properties panel to reflect changes
-    updatePropertiesPanel(element);
-  }, 1500);
+    inputs.forEach(input => {
+      const fieldName = input.id.replace('prop-', '');
+      const fieldValue = input.value;
+      updateElementData(element, fieldName, fieldValue);
+    });
 
-  saveCanvasData();
+    // Visual feedback for successful save
+    const saveBtn = document.getElementById('save-changes-btn');
+    if (saveBtn) {
+      const originalText = saveBtn.innerHTML;
+      saveBtn.innerHTML = '✅ Saved!';
+      saveBtn.classList.add('save-success');
+      
+      // Re-select the element to maintain context and update properties panel
+      setTimeout(() => {
+        saveBtn.innerHTML = originalText;
+        saveBtn.classList.remove('save-success');
+        
+        // Re-update properties panel to reflect changes
+        updatePropertiesPanel(element);
+      }, 1500);
+    }
+
+    saveCanvasData();
+  } catch (error) {
+    console.error('Error saving element changes:', error);
+  }
 }
 
 function formatFieldLabel(field) {
@@ -1126,100 +1470,117 @@ function getElementTypeFromDOM(element) {
 }
 
 function getElementData(element) {
-  const elementId = element.dataset.id;
-  
-  if (element.classList.contains('canvas-section')) {
-    return canvasData.sections.find(s => s.id === elementId) || {};
-  } else if (element.classList.contains('canvas-subsection')) {
-    const sectionEl = element.closest('.canvas-section');
-    const sectionId = sectionEl.dataset.id;
-    const section = canvasData.sections.find(s => s.id === sectionId);
-    return section?.content?.find(item => item.id === elementId) || {};
-  } else if (element.classList.contains('content-item')) {
-    const parentEl = element.parentElement.closest('.canvas-section, .canvas-subsection');
-    if (parentEl.classList.contains('canvas-section')) {
-      const sectionId = parentEl.dataset.id;
-      const section = canvasData.sections.find(s => s.id === sectionId);
-      return section?.content?.find(item => item.id === elementId) || {};
-    } else {
-      const subsectionId = parentEl.dataset.id;
-      const sectionEl = parentEl.closest('.canvas-section');
+  try {
+    const elementId = element.dataset.id;
+    
+    if (element.classList.contains('canvas-section')) {
+      return canvasData.sections.find(s => s.id === elementId) || {};
+    } else if (element.classList.contains('canvas-subsection')) {
+      const sectionEl = element.closest('.canvas-section');
       const sectionId = sectionEl.dataset.id;
       const section = canvasData.sections.find(s => s.id === sectionId);
-      const subsection = section?.content?.find(item => item.id === subsectionId);
-      return subsection?.content?.find(item => item.id === elementId) || {};
+      return section?.content?.find(item => item.id === elementId) || {};
+    } else if (element.classList.contains('content-item')) {
+      const parentEl = element.parentElement.closest('.canvas-section, .canvas-subsection');
+      if (parentEl.classList.contains('canvas-section')) {
+        const sectionId = parentEl.dataset.id;
+        const section = canvasData.sections.find(s => s.id === sectionId);
+        return section?.content?.find(item => item.id === elementId) || {};
+      } else {
+        const subsectionId = parentEl.dataset.id;
+        const sectionEl = parentEl.closest('.canvas-section');
+        const sectionId = sectionEl.dataset.id;
+        const section = canvasData.sections.find(s => s.id === sectionId);
+        const subsection = section?.content?.find(item => item.id === subsectionId);
+        return subsection?.content?.find(item => item.id === elementId) || {};
+      }
     }
+    
+    return {};
+  } catch (error) {
+    console.error('Error getting element data:', error);
+    return {};
   }
-  
-  return {};
 }
 
 function updateElementData(element, fieldName, fieldValue) {
-  const elementId = element.dataset.id;
-  
-  if (element.classList.contains('canvas-section')) {
-    const section = canvasData.sections.find(s => s.id === elementId);
-    if (section) {
-      section[fieldName] = fieldValue;
-      if (fieldName === 'name') {
-        const nameEl = element.querySelector('.section-name');
-        if (nameEl) nameEl.textContent = fieldValue;
-      }
-    }
-  } else if (element.classList.contains('canvas-subsection')) {
-    const sectionEl = element.closest('.canvas-section');
-    const sectionId = sectionEl.dataset.id;
-    const section = canvasData.sections.find(s => s.id === sectionId);
-    const subsection = section?.content?.find(item => item.id === elementId);
-    if (subsection) {
-      subsection[fieldName] = fieldValue;
-      if (fieldName === 'name') {
-        const nameEl = element.querySelector('.subsection-name');
-        if (nameEl) nameEl.textContent = fieldValue;
-      }
-    }
-  } else if (element.classList.contains('content-item')) {
-    const parentEl = element.parentElement.closest('.canvas-section, .canvas-subsection');
-    let targetContent;
+  try {
+    const elementId = element.dataset.id;
     
-    if (parentEl.classList.contains('canvas-section')) {
-      const sectionId = parentEl.dataset.id;
-      const section = canvasData.sections.find(s => s.id === sectionId);
-      targetContent = section?.content?.find(item => item.id === elementId);
-    } else {
-      const subsectionId = parentEl.dataset.id;
-      const sectionEl = parentEl.closest('.canvas-section');
+    if (element.classList.contains('canvas-section')) {
+      const section = canvasData.sections.find(s => s.id === elementId);
+      if (section) {
+        section[fieldName] = fieldValue;
+        if (fieldName === 'name') {
+          const nameEl = element.querySelector('.section-name');
+          if (nameEl) nameEl.textContent = fieldValue;
+        }
+      }
+    } else if (element.classList.contains('canvas-subsection')) {
+      const sectionEl = element.closest('.canvas-section');
       const sectionId = sectionEl.dataset.id;
       const section = canvasData.sections.find(s => s.id === sectionId);
-      const subsection = section?.content?.find(item => item.id === subsectionId);
-      targetContent = subsection?.content?.find(item => item.id === elementId);
-    }
-    
-    if (targetContent) {
-      targetContent[fieldName] = fieldValue;
-      if (fieldName === 'name') {
-        const nameEl = element.querySelector('.content-name');
-        if (nameEl) nameEl.textContent = fieldValue;
+      const subsection = section?.content?.find(item => item.id === elementId);
+      if (subsection) {
+        subsection[fieldName] = fieldValue;
+        if (fieldName === 'name') {
+          const nameEl = element.querySelector('.subsection-name');
+          if (nameEl) nameEl.textContent = fieldValue;
+        }
+      }
+    } else if (element.classList.contains('content-item')) {
+      const parentEl = element.parentElement.closest('.canvas-section, .canvas-subsection');
+      let targetContent;
+      
+      if (parentEl.classList.contains('canvas-section')) {
+        const sectionId = parentEl.dataset.id;
+        const section = canvasData.sections.find(s => s.id === sectionId);
+        targetContent = section?.content?.find(item => item.id === elementId);
+      } else {
+        const subsectionId = parentEl.dataset.id;
+        const sectionEl = parentEl.closest('.canvas-section');
+        const sectionId = sectionEl.dataset.id;
+        const section = canvasData.sections.find(s => s.id === sectionId);
+        const subsection = section?.content?.find(item => item.id === subsectionId);
+        targetContent = subsection?.content?.find(item => item.id === elementId);
+      }
+      
+      if (targetContent) {
+        targetContent[fieldName] = fieldValue;
+        if (fieldName === 'name') {
+          const nameEl = element.querySelector('.content-name');
+          if (nameEl) nameEl.textContent = fieldValue;
+        }
       }
     }
+  } catch (error) {
+    console.error('Error updating element data:', error);
   }
 }
 
 // Context Menu
 function handleContextMenu(e) {
-  const target = e.target.closest('.canvas-section, .canvas-subsection, .content-item');
-  if (target) {
-    e.preventDefault();
-    contextMenuTarget = target;
-    
-    contextMenu.style.left = e.clientX + 'px';
-    contextMenu.style.top = e.clientY + 'px';
-    contextMenu.classList.remove('hidden');
+  try {
+    const target = e.target.closest('.canvas-section, .canvas-subsection, .content-item');
+    if (target) {
+      e.preventDefault();
+      contextMenuTarget = target;
+      
+      if (contextMenu) {
+        contextMenu.style.left = e.clientX + 'px';
+        contextMenu.style.top = e.clientY + 'px';
+        contextMenu.classList.remove('hidden');
+      }
+    }
+  } catch (error) {
+    console.error('Error handling context menu:', error);
   }
 }
 
 function hideContextMenu() {
-  contextMenu.classList.add('hidden');
+  if (contextMenu) {
+    contextMenu.classList.add('hidden');
+  }
   contextMenuTarget = null;
 }
 
@@ -1232,77 +1593,98 @@ function deleteSelectedItem() {
 
 // Toolbar Functions
 function saveCanvas() {
-  saveCanvasData();
-  alert('Canvas saved successfully!');
+  try {
+    saveCanvasData();
+    alert('Canvas saved successfully!');
+  } catch (error) {
+    console.error('Error saving canvas:', error);
+    alert('Error saving canvas. Please try again.');
+  }
 }
 
 function clearCanvas() {
-  canvasData = { sections: [], customCounter: 0 };
-  canvasEl.innerHTML = '';
-  canvasEl.appendChild(canvasPlaceholder);
-  canvasPlaceholder.style.display = 'flex';
-  clearSelection();
-  saveCanvasData();
+  try {
+    canvasData = { sections: [], customCounter: 0 };
+    canvasEl.innerHTML = '';
+    canvasEl.appendChild(canvasPlaceholder);
+    canvasPlaceholder.style.display = 'flex';
+    clearSelection();
+    saveCanvasData();
+  } catch (error) {
+    console.error('Error clearing canvas:', error);
+  }
 }
 
 // Custom Element Creation
 function addCustomSection() {
-  const name = prompt('Enter section name:');
-  if (!name) return;
-  
-  const itemData = {
-    id: generateId(),
-    name: name,
-    icon: '📁',
-    type: 'section',
-    allowsContent: true,
-    preloadedContent: []
-  };
-  
-  createCanvasSection(itemData);
-  canvasPlaceholder.style.display = 'none';
+  try {
+    const name = prompt('Enter section name:');
+    if (!name) return;
+    
+    const itemData = {
+      id: generateId(),
+      name: name,
+      icon: '📁',
+      type: 'section',
+      allowsContent: true,
+      preloadedContent: []
+    };
+    
+    createCanvasSection(itemData);
+    canvasPlaceholder.style.display = 'none';
+  } catch (error) {
+    console.error('Error adding custom section:', error);
+  }
 }
 
 function addCustomResource() {
-  const sections = document.querySelectorAll('.canvas-section:not(.special-section)');
-  if (sections.length === 0) {
-    alert('Please create a section first before adding resources.');
-    return;
+  try {
+    const sections = document.querySelectorAll('.canvas-section:not(.special-section)');
+    if (sections.length === 0) {
+      alert('Please create a section first before adding resources.');
+      return;
+    }
+    
+    const name = prompt('Enter resource name:');
+    if (!name) return;
+    
+    const itemData = {
+      id: generateId(),
+      name: name,
+      icon: '📄',
+      type: 'resource'
+    };
+    
+    // Add to first available section
+    createContentInSection(itemData, sections[0]);
+  } catch (error) {
+    console.error('Error adding custom resource:', error);
   }
-  
-  const name = prompt('Enter resource name:');
-  if (!name) return;
-  
-  const itemData = {
-    id: generateId(),
-    name: name,
-    icon: '📄',
-    type: 'resource'
-  };
-  
-  // Add to first available section
-  createContentInSection(itemData, sections[0]);
 }
 
 function addCustomActivity() {
-  const sections = document.querySelectorAll('.canvas-section:not(.special-section)');
-  if (sections.length === 0) {
-    alert('Please create a section first before adding activities.');
-    return;
+  try {
+    const sections = document.querySelectorAll('.canvas-section:not(.special-section)');
+    if (sections.length === 0) {
+      alert('Please create a section first before adding activities.');
+      return;
+    }
+    
+    const name = prompt('Enter activity name:');
+    if (!name) return;
+    
+    const itemData = {
+      id: generateId(),
+      name: name,
+      icon: '⚡',
+      type: 'activity'
+    };
+    
+    // Add to first available section
+    createContentInSection(itemData, sections[0]);
+  } catch (error) {
+    console.error('Error adding custom activity:', error);
   }
-  
-  const name = prompt('Enter activity name:');
-  if (!name) return;
-  
-  const itemData = {
-    id: generateId(),
-    name: name,
-    icon: '⚡',
-    type: 'activity'
-  };
-  
-  // Add to first available section
-  createContentInSection(itemData, sections[0]);
 }
 
 // PDF Export Function
@@ -1315,6 +1697,10 @@ function exportCanvasToPDF() {
   document.body.classList.add('exporting');
   
   try {
+    if (typeof window.jspdf === 'undefined') {
+      throw new Error('jsPDF library not loaded');
+    }
+
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
     
@@ -1422,71 +1808,76 @@ function exportCanvasToPDF() {
 function renderContentItem(doc, item, x, y, pageHeight) {
   let yPosition = y;
   
-  if (item.type === 'subsection') {
-    // Subsection Header
-    doc.setFontSize(14);
-    doc.setFont(undefined, 'bold');
-    doc.text(`SUBSECTION: ${item.name}`, x, yPosition);
-    yPosition += 8;
-    
-    // Subsection properties
-    if (item.summaryForStudents) {
-      doc.setFontSize(9);
-      doc.setFont(undefined, 'normal');
-      doc.text(`Summary: ${item.summaryForStudents}`, x + 5, yPosition);
+  try {
+    if (item.type === 'subsection') {
+      // Subsection Header
+      doc.setFontSize(14);
+      doc.setFont(undefined, 'bold');
+      doc.text(`SUBSECTION: ${item.name}`, x, yPosition);
+      yPosition += 8;
+      
+      // Subsection properties
+      if (item.summaryForStudents) {
+        doc.setFontSize(9);
+        doc.setFont(undefined, 'normal');
+        doc.text(`Summary: ${item.summaryForStudents}`, x + 5, yPosition);
+        yPosition += 6;
+      }
+      
+      if (item.notesForDeveloper) {
+        doc.setFontSize(9);
+        doc.setFont(undefined, 'italic');
+        doc.text(`Developer Notes: ${item.notesForDeveloper}`, x + 5, yPosition);
+        yPosition += 6;
+      }
+      
+      yPosition += 5;
+      
+      // Subsection content
+      if (item.content && item.content.length > 0) {
+        item.content.forEach((subItem) => {
+          if (yPosition > pageHeight - 30) {
+            doc.addPage();
+            yPosition = 20;
+          }
+          yPosition = renderContentItem(doc, subItem, x + 10, yPosition, pageHeight);
+        });
+      }
+      
+    } else if (item.type === 'design-element') {
+      // Design Element
+      doc.setFontSize(12);
+      doc.setFont(undefined, 'bold');
+      doc.text(`--- ${item.name.toUpperCase()} ---`, x, yPosition);
+      yPosition += 10;
+      
+    } else {
+      // Resource or Activity
+      const typeLabel = item.type === 'resource' ? 'RESOURCE' : 'ACTIVITY';
+      doc.setFontSize(11);
+      doc.setFont(undefined, 'bold');
+      doc.text(`${typeLabel}: ${item.name}`, x, yPosition);
       yPosition += 6;
+      
+      if (item.description) {
+        doc.setFontSize(9);
+        doc.setFont(undefined, 'normal');
+        doc.text(`Description: ${item.description}`, x + 5, yPosition);
+        yPosition += 6;
+      }
+      
+      if (item.approxLearningTime) {
+        doc.setFontSize(9);
+        doc.setFont(undefined, 'normal');
+        doc.text(`Learning Time: ${item.approxLearningTime}`, x + 5, yPosition);
+        yPosition += 6;
+      }
+      
+      yPosition += 3;
     }
-    
-    if (item.notesForDeveloper) {
-      doc.setFontSize(9);
-      doc.setFont(undefined, 'italic');
-      doc.text(`Developer Notes: ${item.notesForDeveloper}`, x + 5, yPosition);
-      yPosition += 6;
-    }
-    
-    yPosition += 5;
-    
-    // Subsection content
-    if (item.content && item.content.length > 0) {
-      item.content.forEach((subItem) => {
-        if (yPosition > pageHeight - 30) {
-          doc.addPage();
-          yPosition = 20;
-        }
-        yPosition = renderContentItem(doc, subItem, x + 10, yPosition, pageHeight);
-      });
-    }
-    
-  } else if (item.type === 'design-element') {
-    // Design Element
-    doc.setFontSize(12);
-    doc.setFont(undefined, 'bold');
-    doc.text(`--- ${item.name.toUpperCase()} ---`, x, yPosition);
-    yPosition += 10;
-    
-  } else {
-    // Resource or Activity
-    const typeLabel = item.type === 'resource' ? 'RESOURCE' : 'ACTIVITY';
-    doc.setFontSize(11);
-    doc.setFont(undefined, 'bold');
-    doc.text(`${typeLabel}: ${item.name}`, x, yPosition);
-    yPosition += 6;
-    
-    if (item.description) {
-      doc.setFontSize(9);
-      doc.setFont(undefined, 'normal');
-      doc.text(`Description: ${item.description}`, x + 5, yPosition);
-      yPosition += 6;
-    }
-    
-    if (item.approxLearningTime) {
-      doc.setFontSize(9);
-      doc.setFont(undefined, 'normal');
-      doc.text(`Learning Time: ${item.approxLearningTime}`, x + 5, yPosition);
-      yPosition += 6;
-    }
-    
-    yPosition += 3;
+  } catch (error) {
+    console.error('Error rendering content item:', error);
+    yPosition += 10; // Skip problematic item
   }
   
   return yPosition;
@@ -1519,62 +1910,66 @@ function loadCanvasData() {
 }
 
 function renderCanvas() {
-  canvasEl.innerHTML = '';
-  
-  if (canvasData.sections.length === 0) {
-    canvasEl.appendChild(canvasPlaceholder);
-    canvasPlaceholder.style.display = 'flex';
-    return;
-  }
-  
-  canvasData.sections.forEach(sectionData => {
-    const sectionEl = document.createElement('div');
-    sectionEl.className = `canvas-section ${!sectionData.allowsContent ? 'special-section' : ''}`;
-    sectionEl.dataset.id = sectionData.id;
-    sectionEl.dataset.type = 'section';
-    sectionEl.draggable = true;
-
-    sectionEl.innerHTML = `
-      <div class="section-header">
-        <div class="section-title" data-name="${sectionData.name}">
-          <span class="component-icon">${sectionData.icon}</span>
-          <span class="section-name">${sectionData.name}</span>
-        </div>
-        <div class="section-controls">
-          <button class="control-btn" onclick="deleteItem(this.closest('.canvas-section'))" title="Delete">🗑️</button>
-        </div>
-      </div>
-      <div class="section-content ${!sectionData.content || sectionData.content.length === 0 ? 'empty' : ''}"></div>
-    `;
-
-    const sectionContent = sectionEl.querySelector('.section-content');
+  try {
+    canvasEl.innerHTML = '';
     
-    if (sectionData.content && sectionData.content.length > 0) {
-      sectionData.content.forEach(contentData => {
-        let contentEl;
-        
-        if (contentData.type === 'subsection') {
-          contentEl = createSubsectionElement(contentData);
-          const subsectionContent = contentEl.querySelector('.subsection-content');
-          
-          if (contentData.content && contentData.content.length > 0) {
-            contentData.content.forEach(subContentData => {
-              const subContentEl = createContentElement(subContentData);
-              subsectionContent.appendChild(subContentEl);
-            });
-            subsectionContent.classList.remove('empty');
-          }
-        } else {
-          contentEl = createContentElement(contentData);
-        }
-        
-        sectionContent.appendChild(contentEl);
-      });
+    if (canvasData.sections.length === 0) {
+      canvasEl.appendChild(canvasPlaceholder);
+      canvasPlaceholder.style.display = 'flex';
+      return;
     }
+    
+    canvasData.sections.forEach(sectionData => {
+      const sectionEl = document.createElement('div');
+      sectionEl.className = `canvas-section ${!sectionData.allowsContent ? 'special-section' : ''}`;
+      sectionEl.dataset.id = sectionData.id;
+      sectionEl.dataset.type = 'section';
+      sectionEl.draggable = true;
 
-    canvasEl.appendChild(sectionEl);
-  });
-  
-  canvasEl.appendChild(canvasPlaceholder);
-  canvasPlaceholder.style.display = 'none';
+      sectionEl.innerHTML = `
+        <div class="section-header">
+          <div class="section-title" data-name="${sectionData.name}">
+            <span class="component-icon">${sectionData.icon}</span>
+            <span class="section-name">${sectionData.name}</span>
+          </div>
+          <div class="section-controls">
+            <button class="control-btn" onclick="deleteItem(this.closest('.canvas-section'))" title="Delete">🗑️</button>
+          </div>
+        </div>
+        <div class="section-content ${!sectionData.content || sectionData.content.length === 0 ? 'empty' : ''}"></div>
+      `;
+
+      const sectionContent = sectionEl.querySelector('.section-content');
+      
+      if (sectionData.content && sectionData.content.length > 0) {
+        sectionData.content.forEach(contentData => {
+          let contentEl;
+          
+          if (contentData.type === 'subsection') {
+            contentEl = createSubsectionElement(contentData);
+            const subsectionContent = contentEl.querySelector('.subsection-content');
+            
+            if (contentData.content && contentData.content.length > 0) {
+              contentData.content.forEach(subContentData => {
+                const subContentEl = createContentElement(subContentData);
+                subsectionContent.appendChild(subContentEl);
+              });
+              subsectionContent.classList.remove('empty');
+            }
+          } else {
+            contentEl = createContentElement(contentData);
+          }
+          
+          sectionContent.appendChild(contentEl);
+        });
+      }
+
+      canvasEl.appendChild(sectionEl);
+    });
+    
+    canvasEl.appendChild(canvasPlaceholder);
+    canvasPlaceholder.style.display = 'none';
+  } catch (error) {
+    console.error('Error rendering canvas:', error);
+  }
 }
